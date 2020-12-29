@@ -1,0 +1,51 @@
+@import "~bootstrap/scss/bootstrap";
+
+$image-fill: #0b2c51;
+
+.app {
+  h1 {
+    text-align: center;
+    padding: 1rem 0 1rem 0;
+  }
+}
+
+main {
+  .landing {
+    @extend .container;
+
+    display: flex;
+    margin: 0 auto;
+    padding-top: 5em;
+
+    // Change flex direction on smaller widths
+    flex-direction: row;
+    $flexDirectionSplit: 575px;
+    @media all and (max-width: $flexDirectionSplit) {
+      flex-direction: column;
+    }
+
+    h1 {
+      font-size: 2.5em;
+      padding-top: 2em;
+      margin: auto 0;
+    }
+  }
+}
+
+.darkmode {
+  background-color: black;
+  color: lightgrey;
+}
+
+.darkmode-switch {
+  position: fixed;
+  bottom: 0%;
+  right: 0%;
+  padding: 20px;
+}
+
+.dark-table {
+  table {
+    color: white;
+  }
+}

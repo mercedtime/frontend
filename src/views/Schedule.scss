@@ -1,0 +1,17 @@
+main {
+  // .schedule {}
+
+  .subject-section {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .courses-list {
+    width: 75%;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    row-gap: 0.8rem;
+    column-gap: 2rem;
+  }
+}

@@ -1,0 +1,15 @@
+$speed: 1s;
+
+// .subcourse-dropdown-enter {
+// }
+
+.subcourse-dropdown-enter-active {
+  transition: all $speed;
+}
+
+// .subcourse-dropdown-exit {
+// }
+
+.subcourse-dropdown-exit-active {
+  transition: all $speed;
+}
