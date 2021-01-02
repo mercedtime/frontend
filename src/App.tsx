@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   BrowserRouter,
   Switch,
@@ -13,6 +13,8 @@ import Navbar from "react-bootstrap/Navbar";
 import Button from "react-bootstrap/Button";
 import Form from "react-bootstrap/Form";
 
+import Auth, { useAuthState } from "./views/Auth";
+import { ThemeProps } from "./views/Theme";
 import Catalog from "./views/Catalog";
 import Schedule, { SubjectView, SubjectViewProps } from "./views/Schedule";
 import { getSubjects, Subject } from "./api";
@@ -42,12 +44,13 @@ const App = () => {
   const darkmode = isDarkmode();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [dark, setDark] = useState<boolean>(darkmode);
-
   const toggleDarkmode = () => {
     localStorage.setItem(DARKMODE_CLASS, dark ? "false" : "true");
     document.body.classList.toggle(DARKMODE_CLASS);
     setDark(!dark);
   };
+
+  const subjMap = useRef<{ [code: string]: string }>({});
 
   // Only runs on component mount
   useEffect(() => {
@@ -56,14 +59,16 @@ const App = () => {
     }
     getSubjects().then((result: Subject[]) => {
       setSubjects(result);
+      for (let s of result) {
+        subjMap.current[s.code] = s.name;
+      }
     });
   }, []);
 
   const getName = (code: string): string => {
-    for (let s of subjects) {
-      if (s.code.toLowerCase() === code) {
-        return s.name;
-      }
+    let key = code.toUpperCase();
+    if (key in subjMap.current) {
+      return subjMap.current[key];
     }
     return "";
   };
@@ -93,6 +98,7 @@ const App = () => {
             <Route exact path="/">
               <Redirect to="/home" />
             </Route>
+
             <Route
               path="/subject/:id"
               component={(props: SubjectViewProps) => {
@@ -124,13 +130,10 @@ const App = () => {
 
 export default App;
 
-interface ThemeProps {
-  dark?: boolean;
-}
-
 function Navigation(props: ThemeProps) {
   const theme = props.dark ? "dark" : "light";
   const navbg = props.dark ? "dark" : "transparent";
+  const authState = useAuthState();
   return (
     <>
       <Navbar bg={navbg} variant={theme} expand="sm">
@@ -151,17 +154,26 @@ function Navigation(props: ThemeProps) {
             </Nav.Link>
           </Nav>
           <Nav>
-            <Nav.Link as={Link} to="/">
-              <Button variant={props.dark ? "outline-light" : "outline-dark"}>
+            <Nav.Link as={Link} to="#">
+              <Button
+                variant={props.dark ? "outline-light" : "outline-dark"}
+                onClick={() => authState.setSignUp(true)}
+              >
                 Sign up
               </Button>
             </Nav.Link>
-            <Nav.Link as={Link} to="/">
-              <Button variant="primary">Sign in</Button>{" "}
+            <Nav.Link as={Link} to="#">
+              <Button
+                variant="primary"
+                onClick={() => authState.setSignIn(true)}
+              >
+                Sign in
+              </Button>{" "}
             </Nav.Link>
           </Nav>
         </Navbar.Collapse>
       </Navbar>
+      <Auth {...authState} dark={props.dark} />
     </>
   );
 }
@@ -175,7 +187,7 @@ function Home(props: ThemeProps & RouteProps) {
     <>
       <div className="landing">
         <NewBeginningsSVG height="400px" fill={imgColor} />
-        <h1 className="welcome-msg">Welcome to Mootown</h1>
+        <h1 className="welcome-msg">Welcome to Mercedtime</h1>
       </div>
     </>
   );

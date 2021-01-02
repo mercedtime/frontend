@@ -98,7 +98,7 @@ export const SubjectView = (
           props.getName(props.match.params.id) ||
           props.match.params.id}
       </h2>
-      <CourseTable variant={variant} courses={courses} />
+      <CourseTable dark={props.dark} variant={variant} courses={courses} />
     </div>
   );
 };

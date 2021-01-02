@@ -1,14 +1,25 @@
+main {
+  .subcourses {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 2fr));
+    row-gap: 0.8rem;
+    column-gap: 1rem;
+  }
+}
+
 $speed: 1s;
 
-// .subcourse-dropdown-enter {
-// }
+.subcourse-dropdown-enter {
+  transform: rotateX(45);
+}
 
 .subcourse-dropdown-enter-active {
   transition: all $speed;
 }
 
-// .subcourse-dropdown-exit {
-// }
+.subcourse-dropdown-exit {
+  transform: rotateX("30");
+}
 
 .subcourse-dropdown-exit-active {
   transition: all $speed;

@@ -2,7 +2,6 @@ import React from "react";
 import Table, {
   TableProps as BootstrapTableProps,
 } from "react-bootstrap/Table";
-import Button from "react-bootstrap/Button";
 import Pagination from "react-bootstrap/Pagination";
 
 import CourseTableRow from "./CourseTableRow";
@@ -16,6 +15,7 @@ type TableBodyTag = React.DetailedHTMLProps<
 >;
 
 export type TableProps = BootstrapTableProps & {
+  dark: boolean;
   maxPageLength?: number;
   columns?: string[];
   children?: TableBodyTag;
@@ -29,7 +29,7 @@ export type TableProps = BootstrapTableProps & {
 
 // TODO figure out how to bind the column names with object-keys so you
 // can just pass an object with "column_name": "interface_key"
-type TableHeadNames = { names: string[] } | { [column: string]: string };
+//type TableHeadNames = { names: string[] } | { [column: string]: string };
 
 export function CourseTableHead({ names }: { names: string[] }) {
   return (
@@ -43,11 +43,17 @@ export function CourseTableHead({ names }: { names: string[] }) {
   );
 }
 
-export function CourseTableBody({ courses }: { courses: Course[] }) {
+export function CourseTableBody({
+  dark,
+  courses,
+}: {
+  dark: boolean;
+  courses: Course[];
+}) {
   return (
     <tbody>
       {courses.map((c) => (
-        <CourseTableRow {...c} key={c.id} />
+        <CourseTableRow course={c} dark={dark} key={c.id} />
       ))}
     </tbody>
   );
@@ -56,14 +62,22 @@ export function CourseTableBody({ courses }: { courses: Course[] }) {
 function TablePagination({
   pager,
   pages,
+  dark,
 }: {
   pager: PageManager;
   pages: number;
+  dark: boolean;
 }) {
   const start = pager.page.current === 0;
-  const end = pager.page.current === pages;
+  const end = pager.page.current >= pages;
   return (
-    <Pagination>
+    <Pagination
+      className={dark ? "darkmode" : ""}
+      style={{
+        backgroundColor: dark ? "black" : "none",
+        color: dark ? "white" : "black",
+      }}
+    >
       <Pagination.First onClick={() => pager.goto(1)} disabled={start} />
       <Pagination.Prev onClick={() => pager.move(-1)} disabled={start} />
       <Pagination.Ellipsis disabled />
@@ -77,7 +91,10 @@ function TablePagination({
       <Pagination.Item onClick={() => pager.move(1)} disabled={end}>
         {pager.page.current + 2}
       </Pagination.Item>
-      <Pagination.Item onClick={() => pager.move(2)} disabled={end}>
+      <Pagination.Item
+        onClick={() => pager.move(2)}
+        disabled={pager.page.current >= pages - 1}
+      >
         {pager.page.current + 3}
       </Pagination.Item>
       <Pagination.Ellipsis disabled />
@@ -95,7 +112,7 @@ export default function CourseTable(props: TableProps & { courses: Course[] }) {
     maxpagelen = props.maxPageLength;
   }
 
-  const pages = Math.floor(props.courses.length / maxpagelen);
+  let pages = Math.floor(props.courses.length / maxpagelen);
   const [rows, pager] = usePaginated<Course>(props.courses, maxpagelen);
   const tprops: BootstrapTableProps = {
     striped: props.striped,
@@ -103,7 +120,7 @@ export default function CourseTable(props: TableProps & { courses: Course[] }) {
     borderless: props.borderless,
     hover: props.hover,
     size: props.size,
-    variant: props.variant,
+    variant: props.variant || props.dark ? "dark" : "",
     responsive: props.responsive,
   };
   const names = [
@@ -119,12 +136,12 @@ export default function CourseTable(props: TableProps & { courses: Course[] }) {
 
   return (
     <>
-      <TablePagination pager={pager} pages={pages} />
+      <TablePagination pager={pager} pages={pages} dark={props.dark} />
       <Table {...tprops}>
         <CourseTableHead names={names} />
-        <CourseTableBody courses={rows} />
+        <CourseTableBody courses={rows} dark={true} />
       </Table>
-      <TablePagination pager={pager} pages={pages} />
+      <TablePagination pager={pager} pages={pages} dark={props.dark} />
     </>
   );
 }

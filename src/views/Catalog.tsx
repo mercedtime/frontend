@@ -21,6 +21,7 @@ export default function Catalog({ dark }: { dark: boolean }) {
           update
         </button>
         <CourseTable
+          dark={dark}
           variant={dark ? "dark" : ""}
           courses={courses}
           maxPageLength={20}

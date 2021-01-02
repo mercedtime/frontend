@@ -1,4 +1,5 @@
 const API_HOST = "http://localhost:8080/api/v1";
+// const API_HOST = "http://10.1.10.8:8080/api/v1";
 
 export interface Subject {
   code: string;
