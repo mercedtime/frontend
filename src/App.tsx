@@ -13,12 +13,12 @@ import Navbar from "react-bootstrap/Navbar";
 import Button from "react-bootstrap/Button";
 import Form from "react-bootstrap/Form";
 
-import Auth, { useAuthState } from "./views/Auth";
+import { AuthModal, SignIn, SignUp, useAuthState } from "./views/Auth";
 import { ThemeProps } from "./views/Theme";
 import Catalog from "./views/Catalog";
 import Schedule, { SubjectView, SubjectViewProps } from "./views/Schedule";
 import { getSubjects, Subject } from "./api";
-import { NewBeginningsSVG } from "./Icons";
+import { NewBeginningsSVG, EmptyUser } from "./Icons";
 import "./App.scss";
 
 function Header() {
@@ -98,7 +98,6 @@ const App = () => {
             <Route exact path="/">
               <Redirect to="/home" />
             </Route>
-
             <Route
               path="/subject/:id"
               component={(props: SubjectViewProps) => {
@@ -110,6 +109,8 @@ const App = () => {
               path="/catalog"
               component={() => <Catalog dark={dark} />}
             />
+            <Route path="/login" component={Login} />
+            <Route path="/signup" component={NewAccount} />
           </Switch>
         </BrowserRouter>
         <Form className="darkmode-switch form-switch-md">
@@ -171,9 +172,10 @@ function Navigation(props: ThemeProps) {
               </Button>{" "}
             </Nav.Link>
           </Nav>
+          <EmptyUser width="45" height="45" />
         </Navbar.Collapse>
       </Navbar>
-      <Auth {...authState} dark={props.dark} />
+      <AuthModal {...authState} dark={props.dark} />
     </>
   );
 }
@@ -201,9 +203,31 @@ function About() {
         <p>
           This is a hobbie project and is not affiliated with the University of
           California. If you would like to contribute to the project, make a
-          pull request to the{" "}
+          pull request to our{" "}
           <a href="https://github.com/mercedtime">github repo</a>.
         </p>
+      </div>
+    </>
+  );
+}
+
+function Login() {
+  return (
+    <>
+      <h1>Sign In</h1>
+      <div className="login-form container">
+        <SignIn />
+      </div>
+    </>
+  );
+}
+
+function NewAccount() {
+  return (
+    <>
+      <h1>New Account</h1>
+      <div className="login-form">
+        <SignUp />
       </div>
     </>
   );

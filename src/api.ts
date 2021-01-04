@@ -1,5 +1,10 @@
-const API_HOST = "http://localhost:8080/api/v1";
-// const API_HOST = "http://10.1.10.8:8080/api/v1";
+const API_HOST = "localhost:8080";
+const API_BASE = `http://${API_HOST}/api/v1`;
+
+export interface ApiError {
+  error: string;
+  code: number;
+}
 
 export interface Subject {
   code: string;
@@ -7,7 +12,7 @@ export interface Subject {
 }
 
 export const getSubjects = async () => {
-  return await fetch(`${API_HOST}/subjects`, {
+  return await fetch(`${API_BASE}/subjects`, {
     method: "GET",
   }).then((resp) => resp.json());
 };
@@ -53,11 +58,50 @@ export interface SubCourse extends BaseCourse {
 export const getCourses = async (year: number, term: string, subj?: string) => {
   let url: string;
   if (subj === undefined) {
-    url = `${API_HOST}/catalog/${year}/${term}`;
+    url = `${API_BASE}/catalog/${year}/${term}`;
   } else {
-    url = `${API_HOST}/catalog/${year}/${term}?subject=${subj.toUpperCase()}`;
+    url = `${API_BASE}/catalog/${year}/${term}?subject=${subj.toUpperCase()}`;
   }
   return await fetch(url)
     .then((resp) => resp.text())
     .then((text) => JSON.parse(text));
 };
+
+interface JWT {
+  code: number;
+  expire: Date;
+  token: string;
+}
+
+export async function login(
+  username: string,
+  password: string
+): Promise<JWT | ApiError> {
+  return await fetch(`http://${API_HOST}/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: username, password: password }),
+  }).then((resp) => resp.json());
+}
+
+export interface NewUser {
+  name: string;
+  password: string;
+  email: string;
+}
+
+export async function createAccount(user: NewUser): Promise<ApiError> {
+  console.log(user);
+  return await fetch(`http://${API_HOST}/signup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(user),
+  })
+    .then((resp) => {
+      console.log(resp);
+      return resp.json();
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+}
