@@ -52,7 +52,6 @@ const App = () => {
 
   const subjMap = useRef<{ [code: string]: string }>({});
 
-  // Only runs on component mount
   useEffect(() => {
     if (isDarkmode()) {
       document.body.classList.toggle(DARKMODE_CLASS);
@@ -201,6 +200,10 @@ function About() {
       <h1>About</h1>
       <div className="container" style={{ width: "75%" }}>
         <p>
+          Mercedtime is a project aiming to try to make it easier for students
+          of the University of California, Merced to sign up for classes.
+        </p>
+        <p>
           This is a hobbie project and is not affiliated with the University of
           California. If you would like to contribute to the project, make a
           pull request to our{" "}
@@ -225,7 +228,7 @@ function Login() {
 function NewAccount() {
   return (
     <>
-      <h1>New Account</h1>
+      <h1>Sign Up</h1>
       <div className="login-form">
         <SignUp />
       </div>
