@@ -2,6 +2,9 @@ import {
   FormEvent,
   ChangeEvent,
   MutableRefObject,
+  RefObject,
+  Dispatch,
+  SetStateAction,
   useState,
   useRef,
 } from "react";
@@ -13,7 +16,12 @@ import Alert from "react-bootstrap/Alert";
 
 import { ThemeProps } from "./Theme";
 import { createAccount, login } from "../api";
-import "./Auth.scss";
+import { isEmail, TOKEN_KEY } from "../util";
+import "./Auth.css";
+
+interface LoginProps {
+  setLoggedIn?: Dispatch<SetStateAction<boolean>>;
+}
 
 interface AuthModalProps {
   signUp: boolean;
@@ -46,7 +54,7 @@ export function useAuthState(): AuthModalProps {
   };
 }
 
-export function AuthModal(props: ThemeProps & AuthModalProps) {
+export function AuthModal(props: ThemeProps & AuthModalProps & LoginProps) {
   return (
     <>
       <Modal show={props.signUp} onHide={() => props.setSignUp(false)} centered>
@@ -62,7 +70,10 @@ export function AuthModal(props: ThemeProps & AuthModalProps) {
           <Modal.Header closeButton>
             <Modal.Title>Welcome back</Modal.Title>
           </Modal.Header>
-          <SignIn close={() => props.setSignIn(false)} />
+          <SignIn
+            close={() => props.setSignIn(false)}
+            setLoggedIn={props.setLoggedIn}
+          />
         </Modal.Body>
       </Modal>
     </>
@@ -83,6 +94,7 @@ export function SignUp({ close }: { close?: () => void }) {
   };
 
   const [pwVarify, setPwVarify] = useState(true);
+  const [validEmail, setValidEmail] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -100,7 +112,11 @@ export function SignUp({ close }: { close?: () => void }) {
       setValid(false);
       return;
     }
-    event.preventDefault();
+    if (emailRef.current !== "" && !isEmail(emailRef.current)) {
+      setValidEmail(false);
+      setValid(false);
+      return;
+    }
 
     let u = {
       name: unameRef.current,
@@ -108,7 +124,6 @@ export function SignUp({ close }: { close?: () => void }) {
       email: emailRef.current,
     };
     createAccount(u).then((resp) => {
-      console.log(resp);
       if ("error" in resp) {
         setError(resp.error);
         setValid(false);
@@ -124,7 +139,7 @@ export function SignUp({ close }: { close?: () => void }) {
 
   return (
     <div className="auth sign-up" style={{ color: "black" }}>
-      <Form noValidate validated={valid} onSubmit={submit} action="/test">
+      <Form noValidate validated={valid} onSubmit={submit}>
         <InputGroup className="mb-2">
           <Form.Control
             type="text"
@@ -133,6 +148,7 @@ export function SignUp({ close }: { close?: () => void }) {
             onChange={unameHandler}
           />
           <Form.Control
+            // type="email"
             type="text"
             placeholder="Email"
             name="email"
@@ -160,21 +176,22 @@ export function SignUp({ close }: { close?: () => void }) {
           />
         </InputGroup>
 
-        {pwVarify ? (
-          <></>
-        ) : (
+        {!pwVarify && (
           <Alert variant="danger" dismissible>
             Differing password
           </Alert>
         )}
-        {error !== null ? (
+        {!validEmail && (
+          <Alert variant="danger" dismissible>
+            Invalid email
+          </Alert>
+        )}
+        {error !== null && (
           <Alert variant="danger" dismissible>
             {error}
           </Alert>
-        ) : (
-          ""
         )}
-        <Button type="submit" value="Sign In">
+        <Button type="submit" id="modal-sign-up-submit">
           Sign Up
         </Button>
       </Form>
@@ -182,9 +199,14 @@ export function SignUp({ close }: { close?: () => void }) {
   );
 }
 
-export function SignIn({ close }: { close?: () => void }) {
-  const [unameRef, unameHandler] = useInput();
-  const [pwRef, pwHandler] = useInput();
+export function SignIn({
+  close,
+  setLoggedIn,
+}: {
+  close?: () => void;
+} & LoginProps) {
+  const unameRef = useRef() as RefObject<HTMLInputElement>;
+  const pwRef = useRef() as RefObject<HTMLInputElement>;
 
   const [valid, setValid] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -192,22 +214,27 @@ export function SignIn({ close }: { close?: () => void }) {
   const submit = (event: FormEvent<HTMLFormElement>) => {
     const form = event.currentTarget;
     event.preventDefault();
-    event.stopPropagation();
     if (form.checkValidity() === false) {
       setValid(false);
+      event.stopPropagation();
       return;
     }
-    login(unameRef.current, pwRef.current).then((resp) => {
-      // TODO handle JWT response
-      console.log(resp);
+    if (unameRef.current === null || pwRef.current === null) {
+      // TODO display error
+      return;
+    }
+    login(unameRef.current.value, pwRef.current.value).then((resp) => {
       if ("error" in resp) {
         setError(resp.error);
         setValid(false);
+        event.stopPropagation();
         return;
       }
       setValid(true);
-      unameRef.current = "";
-      pwRef.current = "";
+      localStorage.setItem(TOKEN_KEY, JSON.stringify(resp));
+      if (setLoggedIn !== undefined) {
+        setLoggedIn(true);
+      }
       if (close !== undefined) {
         close();
       }
@@ -220,10 +247,10 @@ export function SignIn({ close }: { close?: () => void }) {
         <InputGroup className="mb-2">
           <Form.Control
             required
+            ref={unameRef}
             type="text"
             placeholder="Username or Email"
             name="username"
-            onChange={unameHandler}
           />
           <Form.Control.Feedback type="invalid">
             Please provide a valid username.
@@ -232,12 +259,12 @@ export function SignIn({ close }: { close?: () => void }) {
         <Form.Group>
           <Form.Control
             required
+            ref={pwRef}
             type="password"
             placeholder="Password"
             name="password"
             minLength={8}
             autoComplete="current-password"
-            onChange={pwHandler}
           />
           <Form.Control.Feedback type="invalid">
             Please provide a valid password.
@@ -246,7 +273,11 @@ export function SignIn({ close }: { close?: () => void }) {
         <Form.Group>
           <Form.Check label="Remember Me" />
         </Form.Group>
-        {error !== null ? <Alert variant="danger">{error}</Alert> : ""}
+        {error !== null && (
+          <Alert variant="danger" dismissible>
+            {error}
+          </Alert>
+        )}
         <Button type="submit">Sign In</Button>
       </Form>
     </div>

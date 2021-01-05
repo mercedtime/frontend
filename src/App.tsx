@@ -13,12 +13,14 @@ import Navbar from "react-bootstrap/Navbar";
 import Button from "react-bootstrap/Button";
 import Form from "react-bootstrap/Form";
 
+import DropdownMenu from "./views/DropdownMenu";
 import { AuthModal, SignIn, SignUp, useAuthState } from "./views/Auth";
 import { ThemeProps } from "./views/Theme";
 import Catalog from "./views/Catalog";
 import Schedule, { SubjectView, SubjectViewProps } from "./views/Schedule";
-import { getSubjects, Subject } from "./api";
-import { NewBeginningsSVG, EmptyUser } from "./Icons";
+import { getSubjects, Subject, cleanOutExpiredToken } from "./api";
+import { isLoggedIn } from "./util";
+import { NewBeginningsSVG } from "./Icons";
 import "./App.scss";
 
 function Header() {
@@ -40,7 +42,7 @@ function isDarkmode(): boolean {
   return raw === "true";
 }
 
-const App = () => {
+export default function App() {
   const darkmode = isDarkmode();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [dark, setDark] = useState<boolean>(darkmode);
@@ -50,8 +52,10 @@ const App = () => {
     setDark(!dark);
   };
 
+  // This is an example of useRef being abused lol
   const subjMap = useRef<{ [code: string]: string }>({});
 
+  // Runs once on app startup
   useEffect(() => {
     if (isDarkmode()) {
       document.body.classList.toggle(DARKMODE_CLASS);
@@ -62,6 +66,7 @@ const App = () => {
         subjMap.current[s.code] = s.name;
       }
     });
+    cleanOutExpiredToken();
   }, []);
 
   const getName = (code: string): string => {
@@ -99,9 +104,9 @@ const App = () => {
             </Route>
             <Route
               path="/subject/:id"
-              component={(props: SubjectViewProps) => {
-                return <SubjectView dark={dark} {...props} getName={getName} />;
-              }}
+              component={(props: SubjectViewProps) => (
+                <SubjectView dark={dark} {...props} getName={getName} />
+              )}
             />
             <Route
               exact
@@ -126,13 +131,12 @@ const App = () => {
       </main>
     </>
   );
-};
-
-export default App;
+}
 
 function Navigation(props: ThemeProps) {
   const theme = props.dark ? "dark" : "light";
   const navbg = props.dark ? "dark" : "transparent";
+  const [loggedin, setLoggedIn] = useState(isLoggedIn());
   const authState = useAuthState();
   return (
     <>
@@ -154,32 +158,37 @@ function Navigation(props: ThemeProps) {
             </Nav.Link>
           </Nav>
           <Nav>
-            <Nav.Link as={Link} to="#">
-              <Button
-                variant={props.dark ? "outline-light" : "outline-dark"}
-                onClick={() => authState.setSignUp(true)}
-              >
-                Sign up
-              </Button>
-            </Nav.Link>
-            <Nav.Link as={Link} to="#">
-              <Button
-                variant="primary"
-                onClick={() => authState.setSignIn(true)}
-              >
-                Sign in
-              </Button>{" "}
-            </Nav.Link>
+            {!loggedin ? (
+              <>
+                <Nav.Link as={Link} to="#">
+                  <Button
+                    variant={props.dark ? "outline-light" : "outline-dark"}
+                    onClick={() => authState.setSignUp(true)}
+                  >
+                    Sign up
+                  </Button>
+                </Nav.Link>
+                <Nav.Link as={Link} to="#">
+                  <Button
+                    variant="primary"
+                    onClick={() => authState.setSignIn(true)}
+                  >
+                    Sign in
+                  </Button>
+                </Nav.Link>
+              </>
+            ) : (
+              <DropdownMenu setLoggedIn={setLoggedIn} />
+            )}
           </Nav>
-          <EmptyUser width="45" height="45" />
         </Navbar.Collapse>
       </Navbar>
-      <AuthModal {...authState} dark={props.dark} />
+      <AuthModal dark={props.dark} {...authState} setLoggedIn={setLoggedIn} />
     </>
   );
 }
 
-function Home(props: ThemeProps & RouteProps) {
+export function Home(props: ThemeProps & RouteProps) {
   let imgColor = "#0b2c51";
   if (props.dark) {
     imgColor = "lightgrey";
@@ -194,7 +203,7 @@ function Home(props: ThemeProps & RouteProps) {
   );
 }
 
-function About() {
+export function About() {
   return (
     <>
       <h1>About</h1>

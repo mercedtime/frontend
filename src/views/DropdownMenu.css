@@ -1,0 +1,70 @@
+.dropdown {
+  position: absolute;
+  transform: translateX(-45%);
+  overflow: hidden;
+}
+
+.user-icon {
+  background-color: #484a4d;
+  border-radius: 50%;
+  stroke: white;
+  fill: none;
+  transition: filter 300ms;
+}
+.user-icon:hover {
+  filter: brightness(1.25);
+}
+
+.menu-item {
+  color: white;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  transition: background 300ms;
+  padding: 0.5rem;
+  border-radius: 10px;
+  text-decoration: none;
+}
+.menu-item:hover {
+  color: white;
+  background-color: #17559c;
+}
+.menu-icon-right {
+  margin-left: auto;
+}
+
+.menu-icon-left {
+  padding-right: 0.8rem;
+}
+
+.menu-primary-enter {
+  position: absolute;
+  transform: translateX(-110%);
+}
+.menu-primary-enter-active {
+  transform: translateX(0);
+  transition: all 500ms ease;
+}
+.menu-primary-exit {
+  position: absolute;
+}
+.menu-primary-exit-active {
+  transform: translateX(-110%);
+  transition: all 500ms ease;
+}
+
+.menu-secondary-enter {
+  position: absolute;
+  transform: translateX(110%);
+}
+.menu-secondary-enter-active {
+  transform: translateX(0);
+  transition: all 500ms ease;
+}
+.menu-secondary-exit {
+  position: absolute;
+}
+.menu-secondary-exit-active {
+  transform: translateX(110%);
+  transition: all 500ms ease;
+}

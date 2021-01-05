@@ -51,7 +51,13 @@ function CourseTableRow({ course, dark }: { course: Course; dark: boolean }) {
         <td>{course.enrolled}</td>
         <td>{course.capacity}</td>
         <td>{((course.enrolled / course.capacity) * 100).toFixed(2)}%</td>
-        <td>{formatDate(new Date(course.updated_at.toString()))}</td>
+        <td>
+          {formatDate(
+            typeof course.updated_at === "string"
+              ? new Date(course.updated_at as string)
+              : course.updated_at
+          )}
+        </td>
       </tr>
       <CSSTransition
         in={expanded}
