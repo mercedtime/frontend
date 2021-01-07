@@ -18,8 +18,7 @@ main {
 
     // Change flex direction on smaller widths
     flex-direction: row;
-    $flexDirectionSplit: 575px;
-    @media all and (max-width: $flexDirectionSplit) {
+    @media all and (max-width: 575px) {
       flex-direction: column;
     }
 

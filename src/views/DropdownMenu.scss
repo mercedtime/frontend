@@ -2,6 +2,8 @@
   position: absolute;
   transform: translateX(-45%);
   overflow: hidden;
+  z-index: 100;
+  transition: height 300ms ease;
 }
 
 .user-icon {
@@ -32,39 +34,43 @@
 .menu-icon-right {
   margin-left: auto;
 }
-
 .menu-icon-left {
   padding-right: 0.8rem;
 }
 
+$tr-speed: 350ms;
+$tr-func: ease;
+
+$primary-length: -110%;
 .menu-primary-enter {
   position: absolute;
-  transform: translateX(-110%);
+  transform: translateX($primary-length);
 }
 .menu-primary-enter-active {
   transform: translateX(0);
-  transition: all 500ms ease;
+  transition: all $tr-func $tr-speed;
 }
 .menu-primary-exit {
   position: absolute;
 }
 .menu-primary-exit-active {
-  transform: translateX(-110%);
-  transition: all 500ms ease;
+  transform: translateX($primary-length);
+  transition: all $tr-func $tr-speed;
 }
 
+$secondary-length: 230%;
 .menu-secondary-enter {
   position: absolute;
-  transform: translateX(110%);
+  transform: translateX($secondary-length);
 }
 .menu-secondary-enter-active {
   transform: translateX(0);
-  transition: all 500ms ease;
+  transition: all $tr-func $tr-speed;
 }
 .menu-secondary-exit {
   position: absolute;
 }
 .menu-secondary-exit-active {
-  transform: translateX(110%);
-  transition: all 500ms ease;
+  transform: translateX($secondary-length);
+  transition: all $tr-func $tr-speed;
 }

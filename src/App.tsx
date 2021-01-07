@@ -111,7 +111,7 @@ export default function App() {
             <Route
               exact
               path="/catalog"
-              component={() => <Catalog dark={dark} />}
+              component={() => <Catalog dark={dark} subjects={subjects} />}
             />
             <Route path="/login" component={Login} />
             <Route path="/signup" component={NewAccount} />

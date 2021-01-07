@@ -1,0 +1,17 @@
+.sortable-table {
+  th {
+    button {
+      float: left;
+    }
+
+    svg {
+      display: flex;
+      justify-content: center;
+    }
+  }
+
+  .sort-icon {
+    width: 12px;
+    margin-left: 0.5rem;
+  }
+}

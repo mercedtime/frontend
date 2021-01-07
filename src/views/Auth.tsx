@@ -62,7 +62,10 @@ export function AuthModal(props: ThemeProps & AuthModalProps & LoginProps) {
           <Modal.Title>Welcome aboard</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <SignUp close={() => props.setSignUp(false)} />
+          <SignUp
+            close={() => props.setSignUp(false)}
+            setLoggedIn={props.setLoggedIn}
+          />
         </Modal.Body>
       </Modal>
       <Modal show={props.signIn} onHide={() => props.setSignIn(false)} centered>
@@ -80,18 +83,15 @@ export function AuthModal(props: ThemeProps & AuthModalProps & LoginProps) {
   );
 }
 
-export function SignUp({ close }: { close?: () => void }) {
+export function SignUp({
+  close,
+  setLoggedIn,
+}: { close?: () => void } & LoginProps) {
   const [valid, setValid] = useState(false);
-  const [unameRef, unameHandler] = useInput();
-  const [pwRef, pwHandler] = useInput();
-  const [pw2Ref, pw2Handler] = useInput();
-  const [emailRef, emailHandler] = useInput();
-  const reset = () => {
-    unameRef.current = "";
-    emailRef.current = "";
-    pwRef.current = "";
-    pw2Ref.current = "";
-  };
+  const unameRef = useRef() as RefObject<HTMLInputElement>;
+  const emailRef = useRef() as RefObject<HTMLInputElement>;
+  const pwRef = useRef() as RefObject<HTMLInputElement>;
+  const pw2Ref = useRef() as RefObject<HTMLInputElement>;
 
   const [pwVarify, setPwVarify] = useState(true);
   const [validEmail, setValidEmail] = useState(true);
@@ -102,35 +102,51 @@ export function SignUp({ close }: { close?: () => void }) {
     setError(null);
     event.preventDefault();
     event.stopPropagation();
+    setValid(false);
+    setPwVarify(false);
 
     if (form.checkValidity() === false) {
-      setValid(false);
       return;
     }
-    if (pwRef.current !== pw2Ref.current) {
-      setPwVarify(false);
-      setValid(false);
-      return;
-    }
-    if (emailRef.current !== "" && !isEmail(emailRef.current)) {
-      setValidEmail(false);
-      setValid(false);
+    if (
+      unameRef.current === null ||
+      emailRef.current === null ||
+      pwRef.current === null ||
+      pw2Ref.current === null
+    ) {
+      setError("something has gone terribly wrong");
       return;
     }
 
-    let u = {
-      name: unameRef.current,
-      password: pwRef.current,
-      email: emailRef.current,
-    };
-    createAccount(u).then((resp) => {
+    let email = emailRef.current.value;
+    let pw = pwRef.current.value;
+    if (pw !== pw2Ref.current.value) {
+      setError("Repeated password incorrect");
+      setPwVarify(false);
+    } else {
+      setPwVarify(true);
+    }
+    setValidEmail(email !== "" && isEmail(email));
+
+    if (!pwVarify || !validEmail || error !== null) {
+      return;
+    }
+
+    createAccount({
+      name: unameRef.current.value,
+      password: pw,
+      email: email,
+    }).then((resp) => {
       if ("error" in resp) {
         setError(resp.error);
         setValid(false);
         return;
       }
       setValid(true);
-      reset();
+      localStorage.setItem(TOKEN_KEY, JSON.stringify(resp));
+      if (setLoggedIn !== undefined) {
+        setLoggedIn(true);
+      }
       if (close !== undefined) {
         close();
       }
@@ -142,17 +158,16 @@ export function SignUp({ close }: { close?: () => void }) {
       <Form noValidate validated={valid} onSubmit={submit}>
         <InputGroup className="mb-2">
           <Form.Control
+            ref={unameRef}
             type="text"
             placeholder="Username"
             name="username"
-            onChange={unameHandler}
           />
           <Form.Control
-            // type="email"
-            type="text"
+            ref={emailRef}
+            type="email"
             placeholder="Email"
             name="email"
-            onChange={emailHandler}
           />
         </InputGroup>
         <InputGroup className="mb-2">
@@ -162,7 +177,7 @@ export function SignUp({ close }: { close?: () => void }) {
             placeholder="Password"
             minLength={8}
             autoComplete="new-password"
-            onChange={pwHandler}
+            ref={pwRef}
           />
         </InputGroup>
         <InputGroup className="mb-2">
@@ -172,7 +187,7 @@ export function SignUp({ close }: { close?: () => void }) {
             placeholder="Repeat Password"
             minLength={8}
             autoComplete="new-password"
-            onChange={pw2Handler}
+            ref={pw2Ref}
           />
         </InputGroup>
 

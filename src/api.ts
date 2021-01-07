@@ -19,6 +19,8 @@ export const getSubjects = async () => {
   }).then((resp) => resp.json());
 };
 
+export type Term = "spring" | "fall" | "summer";
+
 type CourseType =
   | "LECT"
   | "LAB"
@@ -66,7 +68,14 @@ export const getCourses = async (year: number, term: string, subj?: string) => {
   }
   return await fetch(url)
     .then((resp) => resp.text())
-    .then((text) => JSON.parse(text));
+    .then((text) =>
+      JSON.parse(text, (key: any, value: any): any => {
+        if (key === "updated_at" && typeof value === "string") {
+          return new Date(value);
+        }
+        return value;
+      })
+    );
 };
 
 export interface JWT {
@@ -91,13 +100,11 @@ export const cleanOutExpiredToken = () => {
     return;
   }
   let token = parseJWT(rawtoken);
-  refresh(token).then((tok) => {
-    token = tok;
-    localStorage.setItem(TOKEN_KEY, JSON.stringify(tok));
-  });
   let now = new Date();
   if (token.expire.getTime() < now.getTime()) {
-    localStorage.removeItem(TOKEN_KEY);
+    refresh(token).then((tok) => {
+      localStorage.setItem(TOKEN_KEY, JSON.stringify(tok));
+    });
   }
 };
 
@@ -108,7 +115,7 @@ export async function login(
   return await fetch(`${API_BASE}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username: username, password: password }),
+    body: JSON.stringify({ name: username, password: password }),
   }).then((resp) => resp.json());
 }
 
@@ -116,12 +123,13 @@ export const logout = async () => {
   let rawjwt = localStorage.getItem(TOKEN_KEY);
   if (rawjwt === null) {
     // TODO error
+    return;
   }
+  localStorage.removeItem(TOKEN_KEY);
   let token = parseJWT(rawjwt as string);
   await fetch(`${API_BASE}/auth/logout`, {
     headers: { Authorization: `Bearer ${token.token}` },
   }).then((resp) => resp.status);
-  localStorage.removeItem(TOKEN_KEY);
 };
 
 export const refresh = async (token: JWT) => {

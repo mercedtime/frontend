@@ -63,7 +63,7 @@ export const SignOutIcon = (props: SVGProps<SVGSVGElement>) => {
       viewBox="0 0 24 24"
       width={props.width || "24px"}
       strokeWidth={props.strokeWidth || "1"}
-      fill-rule="nonzero"
+      fillRule="nonzero"
       {...props}
     >
       <g>

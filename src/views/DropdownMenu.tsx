@@ -9,24 +9,36 @@ import { CSSTransition } from "react-transition-group";
 
 import { logout } from "../api";
 import { EmptyUser, ChevronIcon, SignOutIcon, SettingsIcon } from "../Icons";
-import "./DropdownMenu.css";
+import "./DropdownMenu.scss";
 
 export default function DropdownMenu(props: {
   setLoggedIn?: Dispatch<SetStateAction<boolean>>;
 }) {
   const [activeMenu, setActiveMenu] = useState("main");
+  const [height, setHeight] = useState<number | undefined>(undefined);
+  const calcHeight = (el: HTMLElement) => {
+    const h = el.offsetHeight + 32;
+    setHeight(h);
+    console.log(el.offsetWidth);
+  };
   return (
     <>
-      <Dropdown display={<EmptyUser className="user-icon" width="45" />}>
+      <Dropdown
+        display={<EmptyUser className="user-icon" width="45" />}
+        style={{ height: height }}
+      >
         <CSSTransition
           in={activeMenu === "main"}
           unmountOnExit
           timeout={500}
           classNames="menu-primary"
+          onEnter={calcHeight}
         >
           <div>
-            <DropdownItem>One</DropdownItem>
-            <DropdownItem>Two</DropdownItem>
+            <DropdownItem lefticon={<EmptyUser fill="white" width="45" />}>
+              Profile
+            </DropdownItem>
+            <DropdownItem>Notifications</DropdownItem>
             <DropdownItem
               lefticon={<SettingsIcon width="22" fill="white" />}
               righticon={<ChevronIcon width="15" fill="white" />}
@@ -51,6 +63,7 @@ export default function DropdownMenu(props: {
           unmountOnExit
           timeout={500}
           classNames="menu-secondary"
+          onEnter={calcHeight}
         >
           <div>
             <DropdownItem
@@ -63,9 +76,7 @@ export default function DropdownMenu(props: {
             </DropdownItem>
             <DropdownItem>Settings One</DropdownItem>
             <DropdownItem>Settings Two</DropdownItem>
-            <DropdownItem righticon={<ChevronIcon fill="white" />}>
-              Three
-            </DropdownItem>
+            <DropdownItem>Wow, all the settings</DropdownItem>
           </div>
         </CSSTransition>
       </Dropdown>
@@ -76,13 +87,23 @@ export default function DropdownMenu(props: {
 function Dropdown(
   props: PropsWithChildren<{
     display: JSX.Element;
+    style?: React.CSSProperties;
+    className?: string;
   }>
 ) {
   const [open, setOpen] = useState(false);
+  let cls = "dropdown";
+  if (props.className) {
+    cls += ` ${props.className}`;
+  }
   return (
     <>
       <span onClick={() => setOpen(!open)}>{props.display}</span>
-      {open && <div className="dropdown">{props.children}</div>}
+      {open && (
+        <div className={cls} style={props.style}>
+          {props.children}
+        </div>
+      )}
     </>
   );
 }
