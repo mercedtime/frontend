@@ -2,13 +2,6 @@
 
 $image-fill: #0b2c51;
 
-.app {
-  h1 {
-    text-align: center;
-    padding: 1rem 0 1rem 0;
-  }
-}
-
 main {
   .landing {
     @extend .container;
@@ -27,6 +20,10 @@ main {
       padding-top: 2em;
       margin: auto 0;
     }
+  }
+  h1 {
+    text-align: center;
+    padding: 1rem 0 1rem 0;
   }
 }
 
@@ -60,6 +57,28 @@ nav {
   }
 }
 
+// This is only here to override
+// the default bootstrap styles.
 .dropdown {
   position: absolute;
+}
+
+.catalog-input {
+  width: 90%;
+  margin: auto;
+  padding-bottom: 2rem;
+
+  .search {
+    padding-bottom: 5px;
+  }
+  .form-control {
+    // width: 60%;
+  }
+  .subj-select {
+    // width: 40%;
+  }
+
+  .updated-btn {
+    float: right;
+  }
 }

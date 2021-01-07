@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import InputGroup from "react-bootstrap/InputGroup";
+import Row from "react-bootstrap/Row";
+import Col from "react-bootstrap/Col";
 import Select, { ActionMeta } from "react-select";
 
 import { Course, Term, Subject, getCourses } from "../api";
@@ -15,7 +17,7 @@ export default function Catalog({
   subjects: Subject[];
 }) {
   const [year, setYear] = useState(2021);
-  const [term, setTerm] = useState<Term>("spring");
+  const [term] = useState<Term>("spring");
   const [courses, setCourses] = useState<Course[]>([]);
   const [pagelen, setPageLen] = useState(20);
   const [paged, setPaged] = useState(false);
@@ -55,6 +57,7 @@ export default function Catalog({
   const update = () => {
     fetchCourses(subjRef.current);
   };
+  // eslint-disable-next-line
   useEffect(update, []);
 
   let select = [{ value: "all", label: "All" }];
@@ -78,11 +81,7 @@ export default function Catalog({
     <>
       <h1>Catalog</h1>
       <div className="container">
-        <div className="input-group mb-3">
-          <button className="btn btn-primary" onClick={update}>
-            update
-          </button>
-        </div>
+        <div className="input-group mb-3"></div>
         {paged && (
           <InputGroup className="mb-3">
             <input
@@ -98,7 +97,9 @@ export default function Catalog({
             />
           </InputGroup>
         )}
+
         <input
+          hidden // TODO find a place for this
           type="number"
           min="2018"
           max={new Date().getFullYear()}
@@ -107,21 +108,36 @@ export default function Catalog({
             setYear(Number.parseInt(e.target.value))
           }
         />
-        <Select
-          options={select}
-          className="select"
-          style={{ width: "400px" }}
-          onChange={selectChange}
-        />
-        <input className="search" type="search" placeholder="search" />
 
-        <input
-          type="checkbox"
-          value="testing"
-          onInput={(e: React.ChangeEvent<HTMLInputElement>) => {
-            setPaged(e.target.checked);
-          }}
-        />
+        <section className="catalog-input">
+          <div className="search">
+            <input
+              className="form-control"
+              type="search"
+              placeholder="Search"
+            />
+          </div>
+          <Select
+            options={select}
+            className="select subj-select"
+            style={{ width: "400px" }}
+            onChange={selectChange}
+          />
+          <hr />
+          <input
+            id="page-checkbox"
+            type="checkbox"
+            value="testing"
+            onInput={(e: React.ChangeEvent<HTMLInputElement>) => {
+              setPaged(e.target.checked);
+            }}
+          />
+          <label htmlFor="page-checkbox">Show pages</label>
+          <button className="updated-btn btn btn-primary" onClick={update}>
+            update
+          </button>
+        </section>
+
         {paged ? (
           <CourseTable
             dark={dark || false}
@@ -131,9 +147,7 @@ export default function Catalog({
           />
         ) : (
           <SortableTable
-            variant={dark ? "dark" : ""}
             names={columns}
-            sorter={sorter}
             data={courses}
             renderRow={(c: Course) => (
               <CourseTableRow
@@ -142,6 +156,8 @@ export default function Catalog({
                 dark={false}
               />
             )}
+            sorter={sorter}
+            variant={dark ? "dark" : ""}
           />
         )}
       </div>

@@ -1,7 +1,5 @@
 import {
   FormEvent,
-  ChangeEvent,
-  MutableRefObject,
   RefObject,
   Dispatch,
   SetStateAction,
@@ -23,24 +21,11 @@ interface LoginProps {
   setLoggedIn?: Dispatch<SetStateAction<boolean>>;
 }
 
-interface AuthModalProps {
+export interface AuthModalProps {
   signUp: boolean;
   signIn: boolean;
   setSignUp: (value: React.SetStateAction<boolean>) => void;
   setSignIn: (value: React.SetStateAction<boolean>) => void;
-}
-
-function useInput(): [
-  MutableRefObject<string>,
-  (event: ChangeEvent<HTMLInputElement>) => void
-] {
-  const ref = useRef("");
-  return [
-    ref,
-    (event: ChangeEvent<HTMLInputElement>) => {
-      ref.current = event.target.value;
-    },
-  ];
 }
 
 export function useAuthState(): AuthModalProps {

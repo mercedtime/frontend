@@ -62,7 +62,7 @@ export interface SubCourse extends BaseCourse {
 export const getCourses = async (year: number, term: string, subj?: string) => {
   let url: string;
   if (subj === undefined) {
-    url = `${API_BASE}/catalog/${year}/${term}`;
+    url = `${API_BASE}/catalog/${year}/${term}?order=updated_at`;
   } else {
     url = `${API_BASE}/catalog/${year}/${term}?subject=${subj.toUpperCase()}`;
   }

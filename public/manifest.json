@@ -1,9 +1,19 @@
 {
-  "short_name": "Mootown",
-  "name": "Mootown",
+  "short_name": "Mercedtime",
+  "name": "Mercedtime",
   "icons": [
   ],
-  "start_url": ".",
+  "shortcuts": [
+    {
+      "name": "Catalog",
+      "shortcut_name": "Catalog",
+      "description": "View the full course catalog.",
+      "url": "/catalog",
+      "icons": []
+    }
+  ],
+  "start_url": "/home",
+  "scope": "/",
   "display": "standalone",
   "theme_color": "#000000",
   "background_color": "#ffffff"

@@ -5,15 +5,18 @@ import React, {
   SetStateAction,
   useState,
 } from "react";
+import { Link } from "react-router-dom";
 import { CSSTransition } from "react-transition-group";
 
+import Dropdown from "../components/Dropdown";
 import { logout } from "../api";
 import { EmptyUser, ChevronIcon, SignOutIcon, SettingsIcon } from "../Icons";
 import "./DropdownMenu.scss";
 
-export default function DropdownMenu(props: {
+const ProfileDropdown = (props: {
   setLoggedIn?: Dispatch<SetStateAction<boolean>>;
-}) {
+}) => {
+  const [open, setOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState("main");
   const [height, setHeight] = useState<number | undefined>(undefined);
   const calcHeight = (el: HTMLElement) => {
@@ -26,6 +29,8 @@ export default function DropdownMenu(props: {
       <Dropdown
         display={<EmptyUser className="user-icon" width="45" />}
         style={{ height: height }}
+        open={open}
+        className="hello"
       >
         <CSSTransition
           in={activeMenu === "main"}
@@ -36,7 +41,9 @@ export default function DropdownMenu(props: {
         >
           <div>
             <DropdownItem lefticon={<EmptyUser fill="white" width="45" />}>
-              Profile
+              <Link to="/profile" onClick={() => setOpen(false)}>
+                Profile
+              </Link>
             </DropdownItem>
             <DropdownItem>Notifications</DropdownItem>
             <DropdownItem
@@ -82,39 +89,15 @@ export default function DropdownMenu(props: {
       </Dropdown>
     </>
   );
-}
+};
 
-function Dropdown(
-  props: PropsWithChildren<{
-    display: JSX.Element;
-    style?: React.CSSProperties;
-    className?: string;
-  }>
-) {
-  const [open, setOpen] = useState(false);
-  let cls = "dropdown";
-  if (props.className) {
-    cls += ` ${props.className}`;
-  }
-  return (
-    <>
-      <span onClick={() => setOpen(!open)}>{props.display}</span>
-      {open && (
-        <div className={cls} style={props.style}>
-          {props.children}
-        </div>
-      )}
-    </>
-  );
-}
-
-function DropdownItem(
+const DropdownItem = (
   props: PropsWithChildren<{
     lefticon?: JSX.Element;
     righticon?: JSX.Element;
     onClick?: (event: MouseEvent<any>) => void;
   }>
-) {
+) => {
   return (
     <>
       <div className="menu-item" onClick={props.onClick}>
@@ -124,4 +107,6 @@ function DropdownItem(
       </div>
     </>
   );
-}
+};
+
+export default ProfileDropdown;

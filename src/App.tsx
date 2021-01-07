@@ -13,8 +13,15 @@ import Navbar from "react-bootstrap/Navbar";
 import Button from "react-bootstrap/Button";
 import Form from "react-bootstrap/Form";
 
-import DropdownMenu from "./views/DropdownMenu";
-import { AuthModal, SignIn, SignUp, useAuthState } from "./views/Auth";
+import ProfileDropdown from "./views/DropdownMenu";
+import {
+  AuthModal,
+  SignIn,
+  AuthModalProps,
+  SignUp,
+  useAuthState,
+} from "./views/Auth";
+import Profile from "./views/Profile";
 import { ThemeProps } from "./views/Theme";
 import Catalog from "./views/Catalog";
 import Schedule, { SubjectView, SubjectViewProps } from "./views/Schedule";
@@ -113,6 +120,7 @@ export default function App() {
               path="/catalog"
               component={() => <Catalog dark={dark} subjects={subjects} />}
             />
+            <Route path="/profile" component={Profile} />
             <Route path="/login" component={Login} />
             <Route path="/signup" component={NewAccount} />
           </Switch>
@@ -147,38 +155,21 @@ function Navigation(props: ThemeProps) {
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse>
           <Nav className="mr-auto">
-            <Nav.Link as={Link} to="/schedule">
-              Schedule
-            </Nav.Link>
             <Nav.Link as={Link} to="/catalog">
               Catalog
+            </Nav.Link>
+            <Nav.Link as={Link} to="/schedule">
+              Schedule
             </Nav.Link>
             <Nav.Link as={Link} to="/about">
               About
             </Nav.Link>
           </Nav>
           <Nav>
-            {!loggedin ? (
-              <>
-                <Nav.Link as={Link} to="#">
-                  <Button
-                    variant={props.dark ? "outline-light" : "outline-dark"}
-                    onClick={() => authState.setSignUp(true)}
-                  >
-                    Sign up
-                  </Button>
-                </Nav.Link>
-                <Nav.Link as={Link} to="#">
-                  <Button
-                    variant="primary"
-                    onClick={() => authState.setSignIn(true)}
-                  >
-                    Sign in
-                  </Button>
-                </Nav.Link>
-              </>
+            {loggedin ? (
+              <ProfileDropdown setLoggedIn={setLoggedIn} />
             ) : (
-              <DropdownMenu setLoggedIn={setLoggedIn} />
+              <LoginButtons dark={props.dark} authState={authState} />
             )}
           </Nav>
         </Navbar.Collapse>
@@ -188,7 +179,30 @@ function Navigation(props: ThemeProps) {
   );
 }
 
-export function Home(props: ThemeProps & RouteProps) {
+const LoginButtons = ({
+  dark,
+  authState,
+}: ThemeProps & { authState: AuthModalProps }) => {
+  return (
+    <>
+      <Nav.Link as={Link} to="#">
+        <Button
+          variant={dark ? "outline-light" : "outline-dark"}
+          onClick={() => authState.setSignUp(true)}
+        >
+          Sign up
+        </Button>
+      </Nav.Link>
+      <Nav.Link as={Link} to="#">
+        <Button variant="primary" onClick={() => authState.setSignIn(true)}>
+          Sign in
+        </Button>
+      </Nav.Link>
+    </>
+  );
+};
+
+export const Home = (props: ThemeProps & RouteProps) => {
   let imgColor = "#0b2c51";
   if (props.dark) {
     imgColor = "lightgrey";
@@ -201,7 +215,7 @@ export function Home(props: ThemeProps & RouteProps) {
       </div>
     </>
   );
-}
+};
 
 export function About() {
   return (
