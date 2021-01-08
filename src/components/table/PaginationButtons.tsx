@@ -1,13 +1,12 @@
 import Pagination from "react-bootstrap/Pagination";
-import { PageManager } from "../../hooks";
-import { Course } from "../../api";
+import { PageManager } from "../../hooks/pager";
 
-export default function PaginationButtons({
+export default function PaginationButtons<T>({
   pager,
   pages,
   dark,
 }: {
-  pager: PageManager<Course>;
+  pager: PageManager<T>;
   pages: number;
   dark: boolean;
 }) {
@@ -32,13 +31,13 @@ export default function PaginationButtons({
       </Pagination.Item>
       <Pagination.Item active>{pager.page.current + 1}</Pagination.Item>
       <Pagination.Item onClick={() => pager.move(1)} disabled={end}>
-        {pager.page.current + 2}
+        {pager.page.current === pages ? "-" : pager.page.current + 2}
       </Pagination.Item>
       <Pagination.Item
         onClick={() => pager.move(2)}
         disabled={pager.page.current >= pages - 1}
       >
-        {pager.page.current + 3}
+        {pager.page.current + 1 >= pages ? "-" : pager.page.current + 3}
       </Pagination.Item>
       <Pagination.Ellipsis disabled />
       <Pagination.Next onClick={() => pager.move(1)} disabled={end} />

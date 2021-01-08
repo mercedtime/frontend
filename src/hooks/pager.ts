@@ -60,9 +60,7 @@ export function usePaginated<T>(
       move: move,
       goto: goto,
       page: page,
-      sort: (fn: (a: T, b: T) => number) => {
-        // setAll(all.sort(fn));
-      },
+      sort: (fn: (a: T, b: T) => number) => {},
     },
   ];
 }

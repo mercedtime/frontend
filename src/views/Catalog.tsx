@@ -1,10 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import InputGroup from "react-bootstrap/InputGroup";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
 import Select, { ActionMeta } from "react-select";
 
-import { Course, Term, Subject, getCourses } from "../api";
+import { Course, Term, Subject, getCatalog } from "../api";
 import CourseTable from "../course/CourseTable";
 import CourseTableRow from "../course/CourseTableRow";
 import SortableTable from "../components/table/SortableTable";
@@ -24,7 +22,7 @@ export default function Catalog({
   const subjRef = useRef<string | undefined>(undefined);
 
   const fetchCourses = (subj: string | undefined) => {
-    getCourses(year, term, subj).then((res: Course[]) => {
+    getCatalog(year, term, subj).then((res: Course[]) => {
       setCourses(
         res.sort((a: Course, b: Course): number => {
           return b.updated_at.getTime() - a.updated_at.getTime();

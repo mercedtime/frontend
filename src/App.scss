@@ -2,6 +2,13 @@
 
 $image-fill: #0b2c51;
 
+body {
+  @media (prefers-color-scheme: dark) {
+    // color: white;
+    // background-color: black;
+  }
+}
+
 main {
   .landing {
     @extend .container;
@@ -70,12 +77,6 @@ nav {
 
   .search {
     padding-bottom: 5px;
-  }
-  .form-control {
-    // width: 60%;
-  }
-  .subj-select {
-    // width: 40%;
   }
 
   .updated-btn {

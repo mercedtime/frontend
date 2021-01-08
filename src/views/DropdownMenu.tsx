@@ -16,7 +16,6 @@ import "./DropdownMenu.scss";
 const ProfileDropdown = (props: {
   setLoggedIn?: Dispatch<SetStateAction<boolean>>;
 }) => {
-  const [open, setOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState("main");
   const [height, setHeight] = useState<number | undefined>(undefined);
   const calcHeight = (el: HTMLElement) => {
@@ -29,8 +28,8 @@ const ProfileDropdown = (props: {
       <Dropdown
         display={<EmptyUser className="user-icon" width="45" />}
         style={{ height: height }}
-        open={open}
         className="hello"
+        autoCollapse
       >
         <CSSTransition
           in={activeMenu === "main"}
@@ -41,9 +40,7 @@ const ProfileDropdown = (props: {
         >
           <div>
             <DropdownItem lefticon={<EmptyUser fill="white" width="45" />}>
-              <Link to="/profile" onClick={() => setOpen(false)}>
-                Profile
-              </Link>
+              <Link to="/profile">Profile</Link>
             </DropdownItem>
             <DropdownItem>Notifications</DropdownItem>
             <DropdownItem

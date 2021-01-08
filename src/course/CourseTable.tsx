@@ -6,7 +6,7 @@ import Table, {
 import PaginationButtons from "../components/table/PaginationButtons";
 import CourseTableRow from "./CourseTableRow";
 import { Course } from "../api";
-import { usePaginated } from "../hooks";
+import { usePaginated } from "../hooks/pager";
 import "./CourseTable.scss";
 
 type TableBodyTag = React.DetailedHTMLProps<

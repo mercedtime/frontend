@@ -43,16 +43,16 @@ const DARKMODE_CLASS = "darkmode";
 function isDarkmode(): boolean {
   let raw = localStorage.getItem(DARKMODE_CLASS);
   if (raw == null) {
-    localStorage.setItem(DARKMODE_CLASS, "false");
+    let match = window.matchMedia("(prefers-color-scheme: dark)");
+    localStorage.setItem(DARKMODE_CLASS, match.matches.toString());
     return false;
   }
   return raw === "true";
 }
 
 export default function App() {
-  const darkmode = isDarkmode();
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [dark, setDark] = useState<boolean>(darkmode);
+  const [dark, setDark] = useState<boolean>(isDarkmode());
   const toggleDarkmode = () => {
     localStorage.setItem(DARKMODE_CLASS, dark ? "false" : "true");
     document.body.classList.toggle(DARKMODE_CLASS);
@@ -95,7 +95,10 @@ export default function App() {
               exact
               path="/home"
               component={(props: RouteComponentProps) => (
-                <Home dark={dark} {...props} />
+                <>
+                  <Home dark={dark} {...props} />
+                  {/* <input type="checkbox" onInput={toggleDarkmode} /> */}
+                </>
               )}
             />
             <Route
@@ -208,12 +211,10 @@ export const Home = (props: ThemeProps & RouteProps) => {
     imgColor = "lightgrey";
   }
   return (
-    <>
-      <div className="landing">
-        <NewBeginningsSVG height="400px" fill={imgColor} />
-        <h1 className="welcome-msg">Welcome to Mercedtime</h1>
-      </div>
-    </>
+    <div className="landing">
+      <NewBeginningsSVG height="400px" fill={imgColor} />
+      <h1 className="welcome-msg">Welcome to Mercedtime</h1>
+    </div>
   );
 };
 

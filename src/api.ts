@@ -1,6 +1,7 @@
 import { TOKEN_KEY } from "./util";
 
-const API_HOST = "localhost:8080";
+// const API_HOST = "localhost:8080";
+const API_HOST = "10.0.0.8:8080";
 const API_BASE = `http://${API_HOST}/api/v1`;
 
 export interface ApiError {
@@ -13,15 +14,7 @@ export interface Subject {
   name: string;
 }
 
-export const getSubjects = async () => {
-  return await fetch(`${API_BASE}/subjects`, {
-    method: "GET",
-  }).then((resp) => resp.json());
-};
-
-export type Term = "spring" | "fall" | "summer";
-
-type CourseType =
+export type CourseType =
   | "LECT"
   | "LAB"
   | "DISC"
@@ -29,7 +22,8 @@ type CourseType =
   | "STDO"
   | "FLDW"
   | "INI"
-  | "PRA";
+  | "PRA"
+  | "";
 
 interface BaseCourse {
   id: number;
@@ -59,7 +53,19 @@ export interface SubCourse extends BaseCourse {
   building_room: string;
 }
 
-export const getCourses = async (year: number, term: string, subj?: string) => {
+export const getSubjects = async () => {
+  return await fetch(`${API_BASE}/subjects`, {
+    method: "GET",
+  }).then((resp) => resp.json());
+};
+
+export type Term = "spring" | "fall" | "summer";
+
+export const getCatalog = async (
+  year: number,
+  term: string,
+  subj?: string
+): Promise<Course[]> => {
   let url: string;
   if (subj === undefined) {
     url = `${API_BASE}/catalog/${year}/${term}?order=updated_at`;

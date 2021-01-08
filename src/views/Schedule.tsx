@@ -3,7 +3,7 @@ import { RouteComponentProps, Link } from "react-router-dom";
 import Card, { CardProps } from "react-bootstrap/Card";
 
 import CourseTable from "../course/CourseTable";
-import { Subject, Course, getCourses } from "../api";
+import { Subject, Course, getCatalog } from "../api";
 import "./Schedule.scss";
 
 interface ScheduleProps {
@@ -66,7 +66,7 @@ export const SubjectView = (
   const [loaded, setLoaded] = useState(false);
   const subjcode = props.match.params.id;
   useEffect(() => {
-    getCourses(2021, "spring", subjcode).then((res) => {
+    getCatalog(2021, "spring", subjcode).then((res) => {
       setCourses(res);
       setLoaded(true);
     });

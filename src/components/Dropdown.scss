@@ -4,4 +4,9 @@
   overflow: hidden; // submenus to the left or right are hidden
   z-index: 100; // makes sure its on top
   transition: height 300ms ease;
+
+  .dropdown-children {
+    position: relative;
+  }
+  max-width: inherit;
 }
