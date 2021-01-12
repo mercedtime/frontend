@@ -1,7 +1,20 @@
+import React from "react";
 import { TOKEN_KEY } from "./util";
 
-// const API_HOST = "localhost:8080";
-const API_HOST = "10.0.0.8:8080";
+let API_HOST = "localhost:8080";
+
+if (
+  process.env.REACT_APP_PUB_API_HOST !== undefined &&
+  process.env.REACT_APP_PUB_API_PORT !== undefined
+) {
+  let host = process.env.REACT_APP_PUB_API_HOST;
+  let port = process.env.REACT_APP_PUB_API_PORT;
+  if (document.location.hostname !== "localhost") {
+    API_HOST = `${host}:${port}`;
+  } else {
+    API_HOST = `localhost:${port}`;
+  }
+}
 const API_BASE = `http://${API_HOST}/api/v1`;
 
 export interface ApiError {
@@ -100,16 +113,25 @@ export const parseJWT = (s: string): JWT => {
 };
 
 // TODO implement refresh tokens
-export const cleanOutExpiredToken = () => {
+export const cleanOutExpiredToken = (
+  setLoggedIn: React.Dispatch<React.SetStateAction<boolean>>
+) => {
   let rawtoken = localStorage.getItem(TOKEN_KEY);
   if (rawtoken === null) {
     return;
   }
   let token = parseJWT(rawtoken);
+  if (token === undefined || token.expire === undefined) {
+    return;
+  }
   let now = new Date();
   if (token.expire.getTime() < now.getTime()) {
     refresh(token).then((tok) => {
-      localStorage.setItem(TOKEN_KEY, JSON.stringify(tok));
+      if (tok === null) {
+        setLoggedIn(false);
+      } else {
+        localStorage.setItem(TOKEN_KEY, JSON.stringify(tok));
+      }
     });
   }
 };
@@ -143,11 +165,12 @@ export const refresh = async (token: JWT) => {
     headers: { Authorization: `Bearer ${token.token}` },
   })
     .then((resp) => {
-      if (!resp.ok) {
+      if (resp.status !== 200) {
+        return null;
       }
       return resp.text();
     })
-    .then((txt) => parseJWT(txt));
+    .then((txt) => (txt === null ? null : parseJWT(txt)));
 };
 
 export interface NewUser {

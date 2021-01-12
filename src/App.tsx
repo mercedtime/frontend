@@ -30,6 +30,8 @@ import { isLoggedIn } from "./util";
 import { NewBeginningsSVG } from "./Icons";
 import "./App.scss";
 
+const DARKMODE_CLASS = "darkmode";
+
 function Header() {
   return <header></header>;
 }
@@ -38,14 +40,16 @@ function Footer() {
   return <footer></footer>;
 }
 
-const DARKMODE_CLASS = "darkmode";
-
 function isDarkmode(): boolean {
   let raw = localStorage.getItem(DARKMODE_CLASS);
   if (raw == null) {
-    let match = window.matchMedia("(prefers-color-scheme: dark)");
-    localStorage.setItem(DARKMODE_CLASS, match.matches.toString());
-    return false;
+    let dark = false;
+    if ("matchMedia" in window) {
+      let match = window.matchMedia("(prefers-color-scheme: dark)");
+      dark = match.matches;
+    }
+    localStorage.setItem(DARKMODE_CLASS, dark.toString());
+    return dark;
   }
   return raw === "true";
 }
@@ -58,6 +62,7 @@ export default function App() {
     document.body.classList.toggle(DARKMODE_CLASS);
     setDark(!dark);
   };
+  const [loggedin, setLoggedIn] = useState(isLoggedIn());
 
   // This is an example of useRef being abused lol
   const subjMap = useRef<{ [code: string]: string }>({});
@@ -73,7 +78,7 @@ export default function App() {
         subjMap.current[s.code] = s.name;
       }
     });
-    cleanOutExpiredToken();
+    cleanOutExpiredToken(setLoggedIn);
   }, []);
 
   const getName = (code: string): string => {
@@ -89,7 +94,11 @@ export default function App() {
       <main className="app">
         <Header />
         <BrowserRouter>
-          <Navigation dark={dark} />
+          <Navigation
+            dark={dark}
+            loggedin={loggedin}
+            setLoggedIn={setLoggedIn}
+          />
           <Switch>
             <Route
               exact
@@ -97,7 +106,6 @@ export default function App() {
               component={(props: RouteComponentProps) => (
                 <>
                   <Home dark={dark} {...props} />
-                  {/* <input type="checkbox" onInput={toggleDarkmode} /> */}
                 </>
               )}
             />
@@ -144,10 +152,14 @@ export default function App() {
   );
 }
 
-function Navigation(props: ThemeProps) {
+function Navigation(
+  props: ThemeProps & {
+    loggedin: boolean;
+    setLoggedIn: React.Dispatch<React.SetStateAction<boolean>>;
+  }
+) {
   const theme = props.dark ? "dark" : "light";
   const navbg = props.dark ? "dark" : "transparent";
-  const [loggedin, setLoggedIn] = useState(isLoggedIn());
   const authState = useAuthState();
   return (
     <>
@@ -169,15 +181,19 @@ function Navigation(props: ThemeProps) {
             </Nav.Link>
           </Nav>
           <Nav>
-            {loggedin ? (
-              <ProfileDropdown setLoggedIn={setLoggedIn} />
+            {props.loggedin ? (
+              <ProfileDropdown setLoggedIn={props.setLoggedIn} />
             ) : (
               <LoginButtons dark={props.dark} authState={authState} />
             )}
           </Nav>
         </Navbar.Collapse>
       </Navbar>
-      <AuthModal dark={props.dark} {...authState} setLoggedIn={setLoggedIn} />
+      <AuthModal
+        dark={props.dark}
+        {...authState}
+        setLoggedIn={props.setLoggedIn}
+      />
     </>
   );
 }
@@ -230,8 +246,12 @@ export function About() {
         <p>
           This is a hobbie project and is not affiliated with the University of
           California. If you would like to contribute to the project, make a
-          pull request to our{" "}
-          <a href="https://github.com/mercedtime">github repo</a>.
+          pull request one of the{" "}
+          <a href="https://github.com/mercedtime">github repos</a>.
+        </p>
+        <p>
+          Check out the{" "}
+          <a href="http://localhost:8080/graphql/playground">graphql api</a>.
         </p>
       </div>
     </>

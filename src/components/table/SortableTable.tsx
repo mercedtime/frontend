@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import Button from "react-bootstrap/esm/Button";
+import Button from "react-bootstrap/Button";
 import Table, {
   TableProps as BootstrapTableProps,
 } from "react-bootstrap/Table";

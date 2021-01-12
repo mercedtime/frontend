@@ -1,11 +1,22 @@
-import React, { useState, useRef, useEffect } from "react";
-import InputGroup from "react-bootstrap/InputGroup";
+import React, { RefObject, useState, useRef, useEffect } from "react";
 import Select, { ActionMeta } from "react-select";
+import InputGroup from "react-bootstrap/InputGroup";
 
 import { Course, Term, Subject, getCatalog } from "../api";
-import CourseTable from "../course/CourseTable";
 import CourseTableRow from "../course/CourseTableRow";
 import SortableTable from "../components/table/SortableTable";
+import "./Catalog.scss";
+
+/**
+ * TODO
+ * - Add a date range input
+ * - Improve the search box <https://github.com/algolia/react-instantsearch>
+ */
+
+type SelectOpt = {
+  value: string;
+  label: string;
+};
 
 export default function Catalog({
   dark,
@@ -19,41 +30,16 @@ export default function Catalog({
   const [courses, setCourses] = useState<Course[]>([]);
   const [pagelen, setPageLen] = useState(20);
   const [paged, setPaged] = useState(false);
-  const subjRef = useRef<string | undefined>(undefined);
+  const searchRef = useRef<HTMLInputElement>();
 
   const fetchCourses = (subj: string | undefined) => {
     getCatalog(year, term, subj).then((res: Course[]) => {
-      setCourses(
-        res.sort((a: Course, b: Course): number => {
-          return b.updated_at.getTime() - a.updated_at.getTime();
-        })
-      );
       setCourses(res);
     });
   };
 
-  const selectChange = (
-    val: { value: string; label: string } | null | undefined,
-    action: ActionMeta<{ value: string; label: string }>
-  ) => {
-    console.log(val, action);
-    if (val === null || val === undefined) {
-      return;
-    }
-    switch (val.value) {
-      case "":
-      case "all":
-        subjRef.current = undefined;
-        fetchCourses(undefined);
-        break;
-      default:
-        subjRef.current = val.value;
-        fetchCourses(val.value);
-    }
-  };
-
   const update = () => {
-    fetchCourses(subjRef.current);
+    fetchCourses(undefined);
   };
   // eslint-disable-next-line
   useEffect(update, []);
@@ -64,16 +50,6 @@ export default function Catalog({
       return { value: s.code, label: s.name };
     })
   );
-  const columns = [
-    { value: "crn", label: "CRN" },
-    { value: "course_num", label: "Course" },
-    { value: "type", label: "Type" },
-    { value: "title", label: "Title" },
-    { value: "enrolled", label: "Enrolled" },
-    { value: "capacity", label: "Capacity" },
-    { value: "percent", label: "Percent" },
-    { value: "updated_at", label: "Updated" },
-  ];
 
   return (
     <>
@@ -107,61 +83,140 @@ export default function Catalog({
           }
         />
 
-        <section className="catalog-input">
-          <div className="search">
-            <input
-              className="form-control"
-              type="search"
-              placeholder="Search"
-            />
-          </div>
-          <Select
-            options={select}
-            className="select subj-select"
-            style={{ width: "400px" }}
-            onChange={selectChange}
-          />
-          <hr />
-          <input
-            id="page-checkbox"
-            type="checkbox"
-            value="testing"
-            onInput={(e: React.ChangeEvent<HTMLInputElement>) => {
-              setPaged(e.target.checked);
-            }}
-          />
-          <label htmlFor="page-checkbox">Show pages</label>
-          <button className="updated-btn btn btn-primary" onClick={update}>
-            update
-          </button>
-        </section>
-
-        {paged ? (
-          <CourseTable
-            dark={dark || false}
-            variant={dark ? "dark" : ""}
-            courses={courses}
-            maxPageLength={pagelen}
-          />
-        ) : (
-          <SortableTable
-            names={columns}
-            data={courses}
-            renderRow={(c: Course) => (
-              <CourseTableRow
-                key={`${c.crn}-${c.id}`}
-                course={c}
-                dark={false}
-              />
-            )}
-            sorter={sorter}
-            variant={dark ? "dark" : ""}
-          />
-        )}
+        <CatalogResults
+          dark={dark}
+          paged={false}
+          courses={courses}
+          search={searchRef}
+          selections={select}
+          // selectChange={selectChange}
+          update={update}
+        />
       </div>
     </>
   );
 }
+
+type CatalogSearchProps = {
+  dark?: boolean;
+  paged?: boolean;
+  courses: Course[];
+  selections: SelectOpt[];
+  search: any;
+  update: () => void;
+  // depricated
+  selectChange?: (
+    val: SelectOpt | null | undefined,
+    action: ActionMeta<SelectOpt>
+  ) => void;
+};
+
+const CatalogResults = (props: CatalogSearchProps) => {
+  const columns = [
+    { value: "crn", label: "CRN" },
+    { value: "course_num", label: "Course" },
+    { value: "type", label: "Type" },
+    { value: "title", label: "Title" },
+    { value: "enrolled", label: "Enrolled" },
+    { value: "capacity", label: "Capacity" },
+    { value: "percent", label: "Percent" },
+    { value: "updated_at", label: "Updated" },
+  ];
+  const [filterResult, setFiltered] = useState(props.courses);
+  const subjRef = useRef<string>();
+  const searchRef = useRef<HTMLInputElement>();
+
+  const reset = () => {
+    let subj = subjRef.current;
+    if (subj !== undefined && subj !== "" && subj !== "all") {
+      setFiltered(
+        props.courses.filter((c: Course) => c.subject === subjRef.current)
+      );
+    } else {
+      setFiltered(props.courses);
+    }
+  };
+  useEffect(reset, [props.courses]);
+
+  const searchInput = (e: React.FormEvent<HTMLInputElement>) => {
+    if (
+      searchRef.current === undefined ||
+      searchRef.current.value.length < 3 // optimization, min subject length is 3
+    ) {
+      reset();
+      return;
+    }
+    let query = searchRef.current.value.toLowerCase();
+    let res = props.courses.filter((c: Course, i: number): boolean => {
+      // TODO find a faster text search algorithm
+      let corpus = c.title.toLowerCase() + " " + c.description.toLowerCase();
+      return (
+        corpus.toLowerCase().includes(query) ||
+        query === c.subject.toLowerCase()
+      );
+    });
+    setFiltered(res);
+  };
+
+  const selectChange = (
+    val: { value: string; label: string } | null | undefined,
+    action: ActionMeta<{ value: string; label: string }>
+  ) => {
+    if (val === null || val === undefined) {
+      return;
+    }
+    switch (val.value) {
+      case "":
+      case "all":
+        // reset
+        setFiltered(props.courses);
+        break;
+      default:
+        subjRef.current = val.value;
+        setFiltered(
+          props.courses.filter((c: Course) => c.subject === subjRef.current)
+        );
+        break;
+    }
+  };
+
+  return (
+    <>
+      <section className="catalog-input">
+        <div className="search">
+          <input
+            ref={searchRef as RefObject<HTMLInputElement>}
+            onInput={searchInput}
+            className="form-control"
+            type="search"
+            placeholder="Search"
+          />
+        </div>
+        <Select
+          options={props.selections}
+          className="select subj-select"
+          style={{ width: "400px" }}
+          // onChange={props.selectChange}
+          onChange={selectChange}
+        />
+        <hr />
+        <button className="updated-btn btn btn-primary" onClick={props.update}>
+          update
+        </button>
+      </section>
+
+      <SortableTable
+        names={columns}
+        data={filterResult}
+        renderRow={(c: Course) => (
+          <CourseTableRow key={`${c.crn}-${c.id}`} course={c} dark={false} />
+        )}
+        sorter={sorter}
+        variant={props.dark ? "dark" : ""}
+      />
+    </>
+  );
+};
 
 const sorter = (a: Course, b: Course, key: string, rev: boolean): number => {
   if (rev) {
