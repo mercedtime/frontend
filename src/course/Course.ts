@@ -16,6 +16,8 @@ class CatalogEntry implements Course {
   updated_at: Date = new Date(0);
   subcourses: SubCourse[] = [];
 
+  rank?: number;
+
   constructor(course: Course) {
     Object.assign(this, course);
   }
@@ -24,7 +26,17 @@ class CatalogEntry implements Course {
     return ((this.enrolled / this.capacity) * 100).toFixed(2);
   }
 
-  kv(k: string) {}
+  document() {
+    return this.title + " " + this.description;
+  }
+
+  setRank(r: number) {
+    this.rank = r;
+  }
+
+  getRank() {
+    return this.rank || 0;
+  }
 }
 
 export default CatalogEntry;

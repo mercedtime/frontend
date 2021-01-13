@@ -1,13 +1,3 @@
-import levenshtein from "js-levenshtein";
-
-export type token = {
-  key: string;
-  ranking: number;
-};
-
-export type vec = token[];
-type withvec = { vector: vec };
-
 /**
  * tokenize will clean and split a body of text into
  * smaller tokens.
@@ -25,13 +15,6 @@ export const tokenize = (body: string): string[] => {
     .filter((tok: string) => tok !== "" && !stopwords.has(tok));
 };
 
-export const vectorize = (body: string): vec => {
-  let tokens = tokenize(body);
-  return countVectorize(tokens).sort(
-    (a: token, b: token) => b.ranking - a.ranking
-  );
-};
-
 const sum = (vals: number[]): number => {
   let ret = 0;
   for (let v of vals) {
@@ -39,17 +22,6 @@ const sum = (vals: number[]): number => {
   }
   return ret;
 };
-
-export function vecsort<T>(
-  vectors: (T & withvec)[],
-  query: string
-): (T & withvec)[] {
-  return vectors.sort((a: T & withvec, b: T & withvec): number => {
-    const calc = (data: T & withvec) =>
-      sum(data.vector.map((t: token) => levenshtein(t.key, query) * t.ranking));
-    return calc(b) / b.vector.length - calc(a) / a.vector.length;
-  });
-}
 
 export type Rankable = {
   setRank: (rank: number) => void;
@@ -62,6 +34,23 @@ type Doc<T extends Rankable> = { doc: T; tokens: string[] };
 // type FreqMap = Map<string, { freq: number; dist: number }>;
 type FreqMap = Map<string, number>;
 
+type Op = {
+  defaultRank: number;
+  process: (rank: number, other: number) => number;
+};
+
+const operations: { [name: string]: Op } = {
+  or: {
+    defaultRank: 0,
+    process: (rank: number, other: number) => rank + other,
+  },
+  and: {
+    defaultRank: 1,
+    // TODO find a way to normalize around 1
+    process: (rank: number, other: number) => Math.abs(rank - 1) * other,
+  },
+};
+
 /**
  * FrequencyIndex is a document index that operates by
  * counting token frequencies in a document and a set.
@@ -73,9 +62,14 @@ type FreqMap = Map<string, number>;
 export class FrequencyIndex<T extends Rankable> {
   private freqs: FreqMap;
   private ndocs: number;
-  documents: Doc<T>[];
+  private op: Op = operations.or;
+  private documents: Doc<T>[];
 
-  constructor(docs: T[] | undefined) {
+  constructor(docs?: T[], options?: { op?: "or" | "and" }) {
+    if (options !== undefined) {
+      this.op = operations[options.op || "or"];
+    }
+
     this.freqs = new Map<string, number>();
     if (docs === undefined) {
       this.ndocs = 0;
@@ -128,15 +122,17 @@ export class FrequencyIndex<T extends Rankable> {
         tfs.set(tok, count);
       }
 
-      rank = 1;
+      rank = this.op.defaultRank;
       for (let q of querytok) {
         let tf = tfs.get(q);
         let idf = this.freqs.get(q);
         if (idf === undefined || tf === undefined) {
           continue;
         }
-        // rank += (tf / maxfreq) * Math.log(this.ndocs / idf);
-        rank *= Math.max(1, (tf / maxfreq) * Math.log(this.ndocs / idf));
+        rank = this.op.process(
+          rank,
+          (tf / maxfreq) * Math.log(this.ndocs / idf)
+        );
       }
       doc.doc.setRank(rank);
       tfs.clear();
@@ -220,29 +216,6 @@ export const tfidf = (docs: string[][], query: string) => {
 };
 
 /**
- * countVectorize will vectorize a list of tokens base on
- * token frequency in the corpus.
- * @param tokens an array of cleaned token strings
- */
-const countVectorize = (tokens: string[]): vec => {
-  let res: vec = [];
-  let map = new Map<string, number>();
-  let count: number | undefined;
-  for (let i = 0; i < tokens.length; i++) {
-    let tok = tokens[i];
-    count = map.get(tok);
-    if (count === undefined) {
-      count = 0;
-    }
-    map.set(tok, count + 1);
-  }
-  map.forEach((val: number, key: string) => {
-    res.push({ key: key, ranking: val });
-  });
-  return res;
-};
-
-/**
  * 0 | A, E, H, I, O, U, W, Y
  * 1 | B, F, P, V
  * 2 | C, G, J, K, Q, S, X, Z
@@ -283,10 +256,6 @@ export const soundex = (text: string) => {
     }
   }
   return s.join("");
-};
-
-export const phoneticDifference = (a: string, b: string): number => {
-  return levenshtein(soundex(a), soundex(b));
 };
 
 const stopwords = new Set([
