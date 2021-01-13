@@ -2,7 +2,7 @@ import fs from "fs";
 import "@testing-library/jest-dom/extend-expect";
 import levenshtein from "js-levenshtein";
 
-import { tokenize, FrequencyIndex, Rankable, soundex } from "./vec";
+import { tokenize, FrequencyIndex, Rankable, soundex } from "./search";
 import Trie from "./trie";
 
 test("Trie", () => {
@@ -68,6 +68,10 @@ test("soundex", () => {
   // console.log(d);
 });
 
+const sorter = <T extends Rankable>(a: T, b: T): number => {
+  return b.getRank() - a.getRank();
+};
+
 test("frequency search", () => {
   let docs = [
     "this is a test",
@@ -87,7 +91,10 @@ test("frequency search", () => {
   query = "scientific reasons";
   query = "test keyword";
   let res = store.search(query);
-  expect(res[0].document()).toBe(
+  for (let r of res) {
+    console.log(r.getRank(), r.document());
+  }
+  expect(res.sort(sorter)[0].document()).toBe(
     "here are some other reasons to test my keyword search"
   );
 });
@@ -97,43 +104,36 @@ test("misc", () => {
   let data = fs.readFileSync("./src/search/testdata.txt");
   let rawdocs = data.toString().split("\n");
 
-  let docs: Rankable[] = rawdocs.map((d: string) => {
-    let rank = 0;
-    return {
-      document: () => d,
-      setRank: (r: number) => (rank = r),
-      getRank: () => rank,
-    };
-  });
-  let copy = {
-    document: () => docs[0].document(),
-    setRank: (r: number) => docs[0].setRank(r),
-    getRank: () => docs[0].getRank(),
-  };
-  console.log(docs[0] == copy);
-  console.log(docs[0] === copy);
-  let store = new FrequencyIndex(docs);
+  type D = Rankable;
 
-  let query: string;
-  // query = "network";
-  // query = "global network";
-  // query = "money network";
-  // query = "network money";
-  // query = "analysis";
-  // query = "operating systems";
-  query = "data science";
-  docs = store.search(query);
-  for (let d of docs.reverse()) {
-    console.log(d.getRank(), d.document());
+  let docs: Rankable[] = rawdocs.map(
+    (d: string): D => {
+      let rank = 0;
+      return {
+        document: () => d,
+        setRank: (r: number) => (rank = r),
+        getRank: () => rank,
+      };
+    }
+  );
+
+  class TestIndex extends FrequencyIndex<D> {
+    test() {
+      // console.log(this.documents);
+      console.log(this.freqs.size);
+    }
   }
 
-  // type index = { raw: string; rank: number };
-  // let indexes: index[] = [];
-  // for (let i = 0; i < rankings.length; i++) {
-  //   indexes.push({ raw: rawdocs[i], rank: rankings[i] });
-  // }
-  // indexes = indexes.sort((a: index, b: index) => a.rank - b.rank);
-  // for (let ix of indexes) {
-  //   console.log(ix.rank, ix.raw);
-  // }
+  let store = new TestIndex(docs);
+  store.test();
+
+  let query: string;
+  // query = "operating systems";
+  query = "data science";
+  let t0 = performance.now();
+  docs = store.search(query);
+  let t1 = performance.now() - t0;
+  if (t1 > 15) {
+    fail(`should run in under 15 milliseconds; got ${t1}`);
+  }
 });

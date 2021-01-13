@@ -12,29 +12,35 @@ function CourseTableRow({ course, dark }: { course: Course; dark: boolean }) {
   if (expanded) {
     if (course.subcourses === null) {
       subcourses = (
-        <tr>
-          <td colSpan={5}>
-            <Alert
-              variant="danger"
-              dismissible
-              onClose={() => setExpanded(false)}
-            >
-              No sub courses for {course.title}
-            </Alert>
-          </td>
-        </tr>
+        <>
+          <tr>{course.description}</tr>
+          <tr>
+            <td colSpan={5}>
+              <Alert
+                variant="danger"
+                dismissible
+                onClose={() => setExpanded(false)}
+              >
+                No sub courses for {course.title}
+              </Alert>
+            </td>
+          </tr>
+        </>
       );
     } else {
       subcourses = (
-        <tr>
-          <td colSpan={8}>
-            <div className="subcourses">
-              {course.subcourses.map((c) => (
-                <SubCourseRow course={c} expanded={setExpanded} key={c.crn} />
-              ))}
-            </div>
-          </td>
-        </tr>
+        <>
+          <tr>{course.description}</tr>
+          <tr>
+            <td colSpan={8}>
+              <div className="subcourses">
+                {course.subcourses.map((c) => (
+                  <SubCourseRow course={c} expanded={setExpanded} key={c.crn} />
+                ))}
+              </div>
+            </td>
+          </tr>
+        </>
       );
     }
   }

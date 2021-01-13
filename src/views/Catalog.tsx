@@ -1,11 +1,20 @@
-import React, { RefObject, useState, useRef, useEffect } from "react";
+import React, {
+  RefObject,
+  useState,
+  useRef,
+  useEffect,
+  useReducer,
+} from "react";
 import Select, { ActionMeta } from "react-select";
 import InputGroup from "react-bootstrap/InputGroup";
 
 import { Course, Term, Subject, getCatalog } from "../api";
+import { FrequencyIndex } from "../search/search";
+import CatalogEntry from "../course/Course";
 import CourseTableRow from "../course/CourseTableRow";
 import SortableTable from "../components/table/SortableTable";
 import "./Catalog.scss";
+import Trie from "../search/trie";
 
 /**
  * TODO
@@ -18,6 +27,21 @@ type SelectOpt = {
   label: string;
 };
 
+type CourseState = {
+  courses: CatalogEntry[];
+  index?: FrequencyIndex<CatalogEntry>;
+};
+
+class Search {
+  trie: Trie;
+  index: FrequencyIndex<CatalogEntry>;
+
+  constructor(courses: Course[]) {
+    this.trie = new Trie([]);
+    this.index = new FrequencyIndex();
+  }
+}
+
 export default function Catalog({
   dark,
   subjects,
@@ -25,16 +49,24 @@ export default function Catalog({
   dark?: boolean;
   subjects: Subject[];
 }) {
+  let t0 = performance.now();
   const [year, setYear] = useState(2021);
   const [term] = useState<Term>("spring");
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [courseState, setCourseState] = useState<CourseState>({
+    courses: [],
+  });
   const [pagelen, setPageLen] = useState(20);
-  const [paged, setPaged] = useState(false);
+  const [paged] = useState(false);
   const searchRef = useRef<HTMLInputElement>();
 
   const fetchCourses = (subj: string | undefined) => {
     getCatalog(year, term, subj).then((res: Course[]) => {
-      setCourses(res);
+      let courses = res.map((c: Course) => new CatalogEntry(c));
+      let index = new FrequencyIndex(courses);
+      setCourseState({
+        courses: courses,
+        index: index,
+      });
     });
   };
 
@@ -51,6 +83,7 @@ export default function Catalog({
     })
   );
 
+  console.log("Catalog startup:", `${performance.now() - t0} ms`);
   return (
     <>
       <h1>Catalog</h1>
@@ -62,7 +95,7 @@ export default function Catalog({
               className="text-input"
               type="number"
               min="1"
-              max={courses.length}
+              max={courseState.courses.length}
               step="1"
               value={pagelen}
               onInput={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,11 +119,12 @@ export default function Catalog({
         <CatalogResults
           dark={dark}
           paged={false}
-          courses={courses}
+          courses={courseState.courses}
           search={searchRef}
           selections={select}
           // selectChange={selectChange}
           update={update}
+          index={courseState.index}
         />
       </div>
     </>
@@ -104,6 +138,8 @@ type CatalogSearchProps = {
   selections: SelectOpt[];
   search: any;
   update: () => void;
+  index?: FrequencyIndex<CatalogEntry>;
+
   // depricated
   selectChange?: (
     val: SelectOpt | null | undefined,
@@ -127,7 +163,7 @@ const CatalogResults = (props: CatalogSearchProps) => {
   const searchRef = useRef<HTMLInputElement>();
 
   const reset = () => {
-    let subj = subjRef.current;
+    const subj = subjRef.current;
     if (subj !== undefined && subj !== "" && subj !== "all") {
       setFiltered(
         props.courses.filter((c: Course) => c.subject === subjRef.current)
@@ -138,7 +174,13 @@ const CatalogResults = (props: CatalogSearchProps) => {
   };
   useEffect(reset, [props.courses]);
 
-  const searchInput = (e: React.FormEvent<HTMLInputElement>) => {
+  const searchInput = async (e: React.FormEvent<HTMLInputElement>) => {
+    if (props.index === undefined) {
+      return;
+    }
+    if (searchRef.current === undefined) {
+      return;
+    }
     if (
       searchRef.current === undefined ||
       searchRef.current.value.length < 3 // optimization, min subject length is 3
@@ -146,16 +188,20 @@ const CatalogResults = (props: CatalogSearchProps) => {
       reset();
       return;
     }
-    let query = searchRef.current.value.toLowerCase();
-    let res = props.courses.filter((c: Course, i: number): boolean => {
-      // TODO find a faster text search algorithm
-      let corpus = c.title.toLowerCase() + " " + c.description.toLowerCase();
-      return (
-        corpus.toLowerCase().includes(query) ||
-        query === c.subject.toLowerCase()
-      );
-    });
-    setFiltered(res);
+    // let query = searchRef.current.value.toLowerCase();
+    // let res = props.courses.filter((c: Course, i: number): boolean => {
+    //   // TODO find a faster text search algorithm
+    //   let corpus = c.title.toLowerCase() + " " + c.description.toLowerCase();
+    //   return (
+    //     corpus.toLowerCase().includes(query) ||
+    //     query === c.subject.toLowerCase()
+    //   );
+    // });
+    // setFiltered(res);
+    let crs = props.index.search(searchRef.current.value);
+    setFiltered(
+      crs.sort((a: CatalogEntry, b: CatalogEntry) => b.getRank() - a.getRank())
+    );
   };
 
   const selectChange = (

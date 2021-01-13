@@ -15,24 +15,17 @@ export const tokenize = (body: string): string[] => {
     .filter((tok: string) => tok !== "" && !stopwords.has(tok));
 };
 
-const sum = (vals: number[]): number => {
-  let ret = 0;
-  for (let v of vals) {
-    ret += v;
-  }
-  return ret;
-};
-
 export type Rankable = {
   setRank: (rank: number) => void;
   getRank: () => number;
   document: () => string;
 };
 
-type Doc<T extends Rankable> = { doc: T; tokens: string[] };
-
-// type FreqMap = Map<string, { freq: number; dist: number }>;
-type FreqMap = Map<string, number>;
+type Doc<T extends Rankable> = {
+  doc: T;
+  tokens: string[];
+  frequencies: Map<string, number>;
+};
 
 type Op = {
   defaultRank: number;
@@ -51,19 +44,54 @@ const operations: { [name: string]: Op } = {
   },
 };
 
+type IndexValue = { freq: number; dist: number; docs: number[] };
+
+export class DocumentIndex<T extends Rankable> {
+  private freqs: TokenMap<IndexValue>;
+  private op: Op = operations.or;
+
+  protected documents: Doc<T>[];
+
+  constructor(docs: T[]) {
+    this.freqs = new Map<string, IndexValue>();
+    this.documents = docs.map((d: T) => {
+      let tokens = tokenize(d.document());
+      return { doc: d, tokens: tokens, frequencies: buildFreqMap(tokens) };
+    });
+
+    let tokens: string[];
+    let val: IndexValue | undefined;
+    for (let d = 0; d < this.documents.length; d++) {
+      tokens = this.documents[d].tokens;
+      for (let i = 0; i < tokens.length; i++) {
+        val = this.freqs.get(tokens[i]);
+        if (val === undefined) {
+          val = { freq: 0, dist: 0, docs: [] };
+        }
+        val.freq++;
+        val.docs.push(d);
+        this.freqs.set(tokens[i], val);
+      }
+    }
+  }
+}
+
+type TokenMap<T> = Map<string, T>;
+
 /**
  * FrequencyIndex is a document index that operates by
  * counting token frequencies in a document and a set.
  *
  * This is based on the TF*IDF algorithm.
- * https://en.wikipedia.org/wiki/Tf%E2%80%93idf
+ * https://en.wikipedia.org/wiki/tf-idf
  * of documents.
  */
 export class FrequencyIndex<T extends Rankable> {
-  private freqs: FreqMap;
   private ndocs: number;
   private op: Op = operations.or;
-  private documents: Doc<T>[];
+
+  protected freqs: TokenMap<number>;
+  documents: Doc<T>[];
 
   constructor(docs?: T[], options?: { op?: "or" | "and" }) {
     if (options !== undefined) {
@@ -78,7 +106,8 @@ export class FrequencyIndex<T extends Rankable> {
     }
     this.ndocs = docs.length;
     this.documents = docs.map((d: T) => {
-      return { doc: d, tokens: tokenize(d.document()) };
+      let tokens = tokenize(d.document());
+      return { doc: d, tokens: tokens, frequencies: buildFreqMap(tokens) };
     });
 
     let count: number | undefined;
@@ -100,33 +129,23 @@ export class FrequencyIndex<T extends Rankable> {
     } else {
       querytok = query;
     }
-    let tfs = new Map<string, number>();
 
     let maxfreq: number;
-    let count: number | undefined;
     let doc: Doc<T>;
     let rank: number;
+
     for (let i = 0; i < this.ndocs; i++) {
       maxfreq = 0;
       doc = this.documents[i];
 
-      for (let tok of doc.tokens) {
-        count = tfs.get(tok);
-        if (count === undefined) {
-          count = 0;
-        }
-        count += 1;
-        if (count > maxfreq) {
-          maxfreq = count;
-        }
-        tfs.set(tok, count);
-      }
-
       rank = this.op.defaultRank;
       for (let q of querytok) {
-        let tf = tfs.get(q);
+        let tf = doc.frequencies.get(q);
+        if (tf == undefined) {
+          continue;
+        }
         let idf = this.freqs.get(q);
-        if (idf === undefined || tf === undefined) {
+        if (idf === undefined) {
           continue;
         }
         rank = this.op.process(
@@ -135,17 +154,18 @@ export class FrequencyIndex<T extends Rankable> {
         );
       }
       doc.doc.setRank(rank);
-      tfs.clear();
     }
-    return this.documents
-      .map((d: Doc<T>) => d.doc)
-      .sort((a: T, b: T) => b.getRank() - a.getRank());
+    return this.documents.map((d: Doc<T>) => d.doc);
   }
 
   add(doc: T) {
     let tokens = tokenize(doc.document());
     let count: number | undefined;
-    this.documents.push({ doc: doc, tokens: tokens });
+    this.documents.push({
+      doc: doc,
+      tokens: tokens,
+      frequencies: buildFreqMap(tokens),
+    });
     for (let tok of tokens) {
       count = this.freqs.get(tok);
       if (count === undefined) {
@@ -240,7 +260,7 @@ export const soundex = (text: string) => {
       if (mappings[c] === "0") {
         continue;
       }
-      if (mappings[c] != s[si - 1]) {
+      if (mappings[c] !== s[si - 1]) {
         s[si] = mappings[c];
         si++;
       }
@@ -256,6 +276,20 @@ export const soundex = (text: string) => {
     }
   }
   return s.join("");
+};
+
+const buildFreqMap = <T>(values: T[]): Map<T, number> => {
+  let m = new Map<T, number>();
+  let count: number | undefined;
+  for (let val of values) {
+    count = m.get(val);
+    if (count == undefined) {
+      count = 0;
+    }
+    count++;
+    m.set(val, count);
+  }
+  return m;
 };
 
 const stopwords = new Set([
