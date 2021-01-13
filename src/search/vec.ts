@@ -7,6 +7,7 @@ export type token = {
 
 export type vec = token[];
 type withvec = { vector: vec };
+
 /**
  * tokenize will clean and split a body of text into
  * smaller tokens.
@@ -14,8 +15,11 @@ type withvec = { vector: vec };
  */
 export const tokenize = (body: string): string[] => {
   return body
-    .replace(/\.\n\r;,/g, "")
-    .replace(/\t-_/g, " ")
+    .replace(/[\.\r;,\u2019\u2014]/g, "")
+    .replace(/[\t\n-_]/g, " ")
+    .replace(/\u201c/g, '"')
+    .replace(/\u2013/g, "-")
+    .replace(/\u2018/g, "'")
     .toLowerCase()
     .split(" ")
     .filter((tok: string) => tok !== "" && !stopwords.has(tok));
@@ -49,6 +53,7 @@ export function vecsort<T>(
 
 export type Rankable = {
   setRank: (rank: number) => void;
+  getRank: () => number;
   document: () => string;
 };
 
@@ -61,14 +66,14 @@ type FreqMap = Map<string, number>;
  * FrequencyIndex is a document index that operates by
  * counting token frequencies in a document and a set.
  *
- * This is based on the TF-IDF algorithm.
+ * This is based on the TF*IDF algorithm.
  * https://en.wikipedia.org/wiki/Tf%E2%80%93idf
  * of documents.
  */
 export class FrequencyIndex<T extends Rankable> {
-  freqs: FreqMap;
+  private freqs: FreqMap;
+  private ndocs: number;
   documents: Doc<T>[];
-  ndocs: number;
 
   constructor(docs: T[] | undefined) {
     this.freqs = new Map<string, number>();
@@ -94,14 +99,19 @@ export class FrequencyIndex<T extends Rankable> {
     }
   }
 
-  search(query: string): number[] {
-    let querytok = tokenize(query);
+  search(query: string | string[]): T[] {
+    let querytok: string[];
+    if (typeof query === "string") {
+      querytok = tokenize(query);
+    } else {
+      querytok = query;
+    }
     let tfs = new Map<string, number>();
-    let rankings = new Array<number>(this.ndocs);
 
     let maxfreq: number;
     let count: number | undefined;
     let doc: Doc<T>;
+    let rank: number;
     for (let i = 0; i < this.ndocs; i++) {
       maxfreq = 0;
       doc = this.documents[i];
@@ -118,19 +128,22 @@ export class FrequencyIndex<T extends Rankable> {
         tfs.set(tok, count);
       }
 
-      rankings[i] = 0;
+      rank = 1;
       for (let q of querytok) {
         let tf = tfs.get(q);
         let idf = this.freqs.get(q);
         if (idf === undefined || tf === undefined) {
           continue;
         }
-        rankings[i] += (tf / maxfreq) * Math.log(this.ndocs / idf);
+        // rank += (tf / maxfreq) * Math.log(this.ndocs / idf);
+        rank *= Math.max(1, (tf / maxfreq) * Math.log(this.ndocs / idf));
       }
-      doc.doc.setRank(rankings[i]);
+      doc.doc.setRank(rank);
       tfs.clear();
     }
-    return rankings;
+    return this.documents
+      .map((d: Doc<T>) => d.doc)
+      .sort((a: T, b: T) => b.getRank() - a.getRank());
   }
 
   add(doc: T) {
@@ -227,6 +240,53 @@ const countVectorize = (tokens: string[]): vec => {
     res.push({ key: key, ranking: val });
   });
   return res;
+};
+
+/**
+ * 0 | A, E, H, I, O, U, W, Y
+ * 1 | B, F, P, V
+ * 2 | C, G, J, K, Q, S, X, Z
+ * 3 | D, T
+ * 4 | L
+ * 5 | M, N
+ * 6 | R
+ * https://www.archives.gov/research/census/soundex
+ *
+ * @param text text being parsed
+ */
+export const soundex = (text: string) => {
+  let s = [];
+  let si = 1;
+  let c;
+  let mappings = "01230120022455012623010202";
+
+  s[0] = text[0].toUpperCase();
+  for (let i = 1, l = text.length; i < l; i++) {
+    c = text[i].toUpperCase().charCodeAt(0) - 65;
+    if (c >= 0 && c <= 25) {
+      if (mappings[c] === "0") {
+        continue;
+      }
+      if (mappings[c] != s[si - 1]) {
+        s[si] = mappings[c];
+        si++;
+      }
+      if (si > 3) {
+        break;
+      }
+    }
+  }
+  if (si <= 3) {
+    while (si <= 3) {
+      s[si] = "0";
+      si++;
+    }
+  }
+  return s.join("");
+};
+
+export const phoneticDifference = (a: string, b: string): number => {
+  return levenshtein(soundex(a), soundex(b));
 };
 
 const stopwords = new Set([

@@ -1,6 +1,13 @@
-class TrieNode {
-  private children: Map<number, TrieNode>;
-  private char: number;
+export interface Node {
+  char: number;
+  add: (word: string) => void;
+}
+
+class TrieNode implements Node {
+  char: number;
+
+  protected children: Map<number, TrieNode>;
+  private terminates: boolean = false;
 
   constructor(char: number, residule: string) {
     this.char = char;
@@ -8,8 +15,10 @@ class TrieNode {
     if (residule.length > 0) {
       this.add(residule);
     }
+    this.terminates = this.children.size == 0;
   }
 
+  // TODO make this iterative to save memory
   add(word: string) {
     if (word.length === 0) {
       return;
@@ -51,22 +60,42 @@ class TrieNode {
     return d;
   }
 
-  find(word: string): [number, string] {
-    let charstr = String.fromCharCode(this.char);
+  collapse(): string[] {
+    let res: string[] = [];
+    let current: string;
+    for (const [char, child] of this.children) {
+      current = String.fromCharCode(char);
+      if (child.children.size === 0) {
+        res.push(current);
+      } else {
+        if (child.terminates) {
+          res.push(current);
+        }
+        for (let s of child.collapse()) {
+          res.push(current + s);
+        }
+      }
+    }
+    return res;
+  }
+
+  getNode(word: string): TrieNode | undefined {
     if (word.length === 0) {
-      return [0, charstr];
+      return this;
     }
     let child = this.child(word);
     if (child === undefined) {
-      return [0, charstr];
+      return undefined;
     }
-
-    let [d, str] = child.find(word.slice(1));
-    // root node is 0
-    if (this.char > 0) {
-      return [1 + d, charstr + str];
+    word = word.slice(1);
+    while (word.length > 0) {
+      child = child.child(word);
+      if (child === undefined) {
+        return undefined;
+      }
+      word = word.slice(1);
     }
-    return [1 + d, str];
+    return child;
   }
 }
 
@@ -76,5 +105,17 @@ export default class Trie extends TrieNode {
     for (let w of words) {
       this.add(w);
     }
+  }
+
+  search(prefix: string): string[] {
+    let node = this.getNode(prefix);
+    if (node === undefined) {
+      return [];
+    }
+    return node.collapse().map((s: string) => prefix + s);
+  }
+
+  get size(): number {
+    return this.children.size;
   }
 }
