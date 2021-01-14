@@ -27,7 +27,7 @@ class CatalogEntry implements Course {
   }
 
   document() {
-    return this.title + " " + this.description;
+    return this.title + " " + this.subject + " " + this.description;
   }
 
   setRank(r: number) {

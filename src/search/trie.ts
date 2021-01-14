@@ -15,7 +15,7 @@ class TrieNode implements Node {
     if (residule.length > 0) {
       this.add(residule);
     }
-    this.terminates = this.children.size == 0;
+    this.terminates = this.children.size === 0;
   }
 
   // TODO make this iterative to save memory

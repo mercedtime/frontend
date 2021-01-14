@@ -1,15 +1,9 @@
-import React, {
-  RefObject,
-  useState,
-  useRef,
-  useEffect,
-  useReducer,
-} from "react";
+import React, { RefObject, useState, useRef, useEffect } from "react";
 import Select, { ActionMeta } from "react-select";
 import InputGroup from "react-bootstrap/InputGroup";
 
+import { FrequencyIndex, Rankable, Doc, tokenize } from "../search/search";
 import { Course, Term, Subject, getCatalog } from "../api";
-import { FrequencyIndex } from "../search/search";
 import CatalogEntry from "../course/Course";
 import CourseTableRow from "../course/CourseTableRow";
 import SortableTable from "../components/table/SortableTable";
@@ -27,20 +21,26 @@ type SelectOpt = {
   label: string;
 };
 
-type CourseState = {
-  courses: CatalogEntry[];
-  index?: FrequencyIndex<CatalogEntry>;
-};
-
-class Search {
+class Search<T extends Rankable> extends FrequencyIndex<T> {
   trie: Trie;
-  index: FrequencyIndex<CatalogEntry>;
 
-  constructor(courses: Course[]) {
-    this.trie = new Trie([]);
-    this.index = new FrequencyIndex();
+  constructor(courses: T[]) {
+    super(courses);
+    let tokens = new Set(this.documents.flatMap((val: Doc<T>) => val.tokens));
+    this.trie = new Trie(Array.from(tokens.keys()));
+  }
+
+  async find(query: string) {
+    let terms = tokenize(query);
+    terms = terms.concat(this.trie.search(query));
+    return this.search(terms);
   }
 }
+
+type CourseState = {
+  courses: CatalogEntry[];
+  index?: Search<CatalogEntry>;
+};
 
 export default function Catalog({
   dark,
@@ -62,10 +62,9 @@ export default function Catalog({
   const fetchCourses = (subj: string | undefined) => {
     getCatalog(year, term, subj).then((res: Course[]) => {
       let courses = res.map((c: Course) => new CatalogEntry(c));
-      let index = new FrequencyIndex(courses);
       setCourseState({
         courses: courses,
-        index: index,
+        index: new Search(courses),
       });
     });
   };
@@ -138,7 +137,7 @@ type CatalogSearchProps = {
   selections: SelectOpt[];
   search: any;
   update: () => void;
-  index?: FrequencyIndex<CatalogEntry>;
+  index?: Search<CatalogEntry>;
 
   // depricated
   selectChange?: (
@@ -178,30 +177,26 @@ const CatalogResults = (props: CatalogSearchProps) => {
     if (props.index === undefined) {
       return;
     }
-    if (searchRef.current === undefined) {
-      return;
-    }
+    let query: string;
     if (
       searchRef.current === undefined ||
       searchRef.current.value.length < 3 // optimization, min subject length is 3
     ) {
       reset();
       return;
+    } else {
+      query = searchRef.current.value;
     }
-    // let query = searchRef.current.value.toLowerCase();
-    // let res = props.courses.filter((c: Course, i: number): boolean => {
-    //   // TODO find a faster text search algorithm
-    //   let corpus = c.title.toLowerCase() + " " + c.description.toLowerCase();
-    //   return (
-    //     corpus.toLowerCase().includes(query) ||
-    //     query === c.subject.toLowerCase()
-    //   );
-    // });
-    // setFiltered(res);
-    let crs = props.index.search(searchRef.current.value);
-    setFiltered(
-      crs.sort((a: CatalogEntry, b: CatalogEntry) => b.getRank() - a.getRank())
-    );
+
+    const sort = (a: CatalogEntry, b: CatalogEntry) =>
+      b.getRank() - a.getRank();
+
+    let crs = await props.index
+      .find(query)
+      .then((result) =>
+        result.filter((d: CatalogEntry) => d.getRank() > 0).sort(sort)
+      );
+    setFiltered(crs);
   };
 
   const selectChange = (
@@ -242,7 +237,6 @@ const CatalogResults = (props: CatalogSearchProps) => {
           options={props.selections}
           className="select subj-select"
           style={{ width: "400px" }}
-          // onChange={props.selectChange}
           onChange={selectChange}
         />
         <hr />

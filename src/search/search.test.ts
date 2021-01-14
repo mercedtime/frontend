@@ -2,7 +2,7 @@ import fs from "fs";
 import "@testing-library/jest-dom/extend-expect";
 import levenshtein from "js-levenshtein";
 
-import { tokenize, FrequencyIndex, Rankable, soundex } from "./search";
+import { tokenize, FrequencyIndex, Rankable, Doc, soundex } from "./search";
 import Trie from "./trie";
 
 test("Trie", () => {
@@ -100,7 +100,6 @@ test("frequency search", () => {
 });
 
 test("misc", () => {
-  // return;
   let data = fs.readFileSync("./src/search/testdata.txt");
   let rawdocs = data.toString().split("\n");
 
@@ -119,7 +118,6 @@ test("misc", () => {
 
   class TestIndex extends FrequencyIndex<D> {
     test() {
-      // console.log(this.documents);
       console.log(this.freqs.size);
     }
   }
@@ -127,13 +125,16 @@ test("misc", () => {
   let store = new TestIndex(docs);
   store.test();
 
+  const sort = (a: D, b: D) => b.getRank() - a.getRank();
+
   let query: string;
   // query = "operating systems";
   query = "data science";
   let t0 = performance.now();
-  docs = store.search(query);
+  let result = store.search(query);
   let t1 = performance.now() - t0;
-  if (t1 > 15) {
-    fail(`should run in under 15 milliseconds; got ${t1}`);
+  console.log(t1);
+  if (t1 > 2) {
+    fail(`should run in under 1 millisecond; got ${t1}`);
   }
 });
